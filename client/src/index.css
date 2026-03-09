@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f5f2eb;
+  --ink: #0d0d14;
+  --card: #fffdfa;
+  --border: #e0ddd6;
+  --muted: #6e6e77;
+  --accent: #1c6fff;
+  /* Original accent */
+  --accent2: #00c96e;
+  /* Original accent2 */
+  --wrong: #ff4d1c;
+  --correct: #008f4c;
+}
+
+.dark {
+  --paper: #0d0d14;
+  --ink: #f5f2eb;
+  --card: #16161c;
+  --border: #2a2a33;
+  --muted: #a1a1aa;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+}
+
+.font-syne {
+  font-family: 'Syne', sans-serif;
+}
+
+/* Tailwind layer utility overrides to use variables */
+@layer utilities {
+  .bg-paper {
+    background-color: var(--paper);
+  }
+
+  .bg-card {
+    background-color: var(--card);
+  }
+
+  .text-ink {
+    color: var(--ink);
+  }
+
+  .text-muted {
+    color: var(--muted);
+  }
+
+  .border-border {
+    border-color: var(--border);
+  }
+
+  .text-accent {
+    color: var(--accent);
+  }
+
+  .bg-accent {
+    background-color: var(--accent);
+  }
+
+  .text-accent2 {
+    color: var(--accent2);
+  }
+
+  .bg-accent2 {
+    background-color: var(--accent2);
+  }
+
+  .text-wrong {
+    color: var(--wrong);
+  }
+
+  .text-correct {
+    color: var(--correct);
+  }
+
+  .border-accent {
+    border-color: var(--accent);
+  }
+
+  .border-accent2 {
+    border-color: var(--accent2);
+  }
+
+  .border-correct {
+    border-color: var(--correct);
+  }
+
+  .border-wrong {
+    border-color: var(--wrong);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.4s infinite linear;
+}
