@@ -63,6 +63,7 @@ def allocate_distribution(total_count, distribution_pct):
 
 @router.route('/start', methods=['POST'])
 def start_practice():
+    import traceback as tb
     data = request.get_json()
     student_id = data.get('student_id')
     mode = data.get('mode', 'skill')
@@ -160,6 +161,7 @@ def start_practice():
                 'is_practice': True,
             })
         ))
+        conn.commit()
 
         # Create attempt for this practice session
         cursor = conn.execute('''
@@ -183,7 +185,232 @@ def start_practice():
             },
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # FIXED: Log full error traceback for debugging
+        print(f"[PRACTICE ERROR] {e}")
+        print(tb.format_exc())
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
+
+
+@router.route('/next-question', methods=['POST'])
+def get_next_adaptive_question():
+    """
+    FIXED: Generate next question based on real-time performance.
+    Works for ALL quiz types: practice, class activities, topic quizzes.
+    """
+    import traceback as tb
+    data = request.get_json()
+    attempt_id = data.get('attempt_id')
+    previous_correct = data.get('previous_correct', True)
+    consecutive_wrong = data.get('consecutive_wrong', 0)
+    consecutive_correct = data.get('consecutive_correct', 0)
+    current_difficulty = data.get('current_difficulty', 'core')
+    skill_tag = data.get('skill_tag')
+    topic = data.get('topic')
+    chapter = data.get('chapter')
+    question_types = data.get('question_types', ['multiple_choice'])
+    
+    try:
+        conn = db.get_db()
+        
+        # Get attempt info
+        attempt = conn.execute('''
+            SELECT a.*, q.topic, q.chapter, q.grade, q.question_types
+            FROM attempts a
+            LEFT JOIN quizzes q ON q.code = a.quiz_code
+            WHERE a.id = ?
+        ''', (attempt_id,)).fetchone()
+        
+        if not attempt:
+            return jsonify({'error': 'Attempt not found'}), 404
+        
+        # Determine next difficulty based on performance
+        if consecutive_wrong >= 2:
+            # Struggling - go easier
+            next_difficulty = 'foundation'
+            adjustment_reason = 'consecutive_wrong'
+            adjustment_msg = "Let's focus on the fundamentals."
+        elif consecutive_correct >= 3:
+            # Excelling - increase challenge
+            next_difficulty = 'advanced'
+            adjustment_reason = 'consecutive_correct'
+            adjustment_msg = "You're crushing it! Time for a challenge."
+        elif not previous_correct:
+            # Got last one wrong - stay same or go easier
+            next_difficulty = 'foundation' if current_difficulty == 'advanced' else current_difficulty
+            adjustment_reason = 'last_wrong'
+            adjustment_msg = "Let's review this concept."
+        elif previous_correct:
+            # Got last one right - can go harder
+            next_difficulty = 'advanced' if current_difficulty == 'foundation' else current_difficulty
+            adjustment_reason = 'last_correct'
+            adjustment_msg = "Great work! Let's build on that."
+        else:
+            next_difficulty = current_difficulty
+            adjustment_reason = 'none'
+            adjustment_msg = "Keep going!"
+        
+        # Parse question types from database
+        db_question_types = attempt['question_types']
+        if db_question_types:
+            try:
+                parsed_types = json.loads(db_question_types)
+                if isinstance(parsed_types, list) and len(parsed_types) > 0:
+                    question_types = parsed_types
+            except:
+                pass
+        
+        # Select random question type from available types
+        import random
+        selected_type = random.choice(question_types) if question_types else 'multiple_choice'
+        
+        # Build prompt for AI to generate adaptive question
+        prompt = f"""Generate a {next_difficulty} difficulty math question for grade {attempt['grade'] or '7'}.
+
+Topic: {topic or attempt['topic'] or 'General Math'}
+Chapter: {chapter or attempt['chapter'] or ''}
+Skill: {skill_tag or 'General'}
+
+Question Type: {selected_type}
+
+Student Performance:
+- Consecutive correct: {consecutive_correct}
+- Consecutive wrong: {consecutive_wrong}
+- Previous difficulty: {current_difficulty}
+- Adjustment: {adjustment_reason} ({adjustment_msg})
+
+Return ONLY a valid JSON object matching this structure for type "{selected_type}":
+
+For multiple_choice:
+{{
+  "type": "multiple_choice",
+  "question": "What is...?",
+  "options": ["A. option1", "B. option2", "C. option3", "D. option4"],
+  "answer": "B",
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is correct",
+  "hint": "Helpful hint"
+}}
+
+For true_false:
+{{
+  "type": "true_false",
+  "question": "Statement here...",
+  "answer": "True",
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is correct",
+  "hint": "Helpful hint"
+}}
+
+For numeric_response:
+{{
+  "type": "numeric_response",
+  "question": "Calculate...",
+  "answers": ["5"],
+  "tolerance": 0,
+  "unit": "",
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is correct",
+  "hint": "Helpful hint"
+}}
+
+For matching:
+{{
+  "type": "matching",
+  "question": "Match each item with its answer:",
+  "pairs": [{{"left": "Item 1", "right": "Answer 1"}}, {{"left": "Item 2", "right": "Answer 2"}}],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is correct",
+  "hint": "Helpful hint"
+}}
+
+For multi_select:
+{{
+  "type": "multi_select",
+  "question": "Select all that apply...",
+  "options": ["A. option1", "B. option2", "C. option3", "D. option4"],
+  "correct_answers": ["A", "C"],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why these are correct",
+  "hint": "Helpful hint"
+}}
+
+For open_ended:
+{{
+  "type": "open_ended",
+  "question": "Explain or solve...",
+  "sample_answer": "Sample solution here",
+  "keywords": ["key", "words"],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Sample explanation",
+  "hint": "Helpful hint"
+}}
+
+For fill_blank:
+{{
+  "type": "fill_blank",
+  "question": "Complete: The answer is ___.",
+  "answers": [["five", "5"], ["ten", "10"]],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is correct",
+  "hint": "Helpful hint"
+}}
+
+For ordering:
+{{
+  "type": "ordering",
+  "question": "Arrange in order...",
+  "items": ["item1", "item2", "item3"],
+  "correct_order": ["item2", "item1", "item3"],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this order is correct",
+  "hint": "Helpful hint"
+}}
+
+For error_analysis:
+{{
+  "type": "error_analysis",
+  "question": "Find the error in this solution...",
+  "incorrect_solution": "2 + 2 = 5",
+  "error_description": "What went wrong",
+  "correction": "2 + 2 = 4",
+  "keywords": ["addition", "correct"],
+  "difficulty": "{next_difficulty}",
+  "skill_tag": "{skill_tag or 'General'}",
+  "explanation": "Why this is the error",
+  "hint": "Helpful hint"
+}}
+
+Do NOT include markdown code blocks. Return raw JSON only."""
+        
+        return jsonify({
+            'success': True,
+            'next_difficulty': next_difficulty,
+            'adjustment_reason': adjustment_reason,
+            'adjustment_message': adjustment_msg,
+            'prompt': prompt,
+            'question_type': selected_type,
+            'context': {
+                'topic': topic or attempt['topic'],
+                'chapter': chapter or attempt['chapter'],
+                'skill': skill_tag,
+                'consecutive_correct': consecutive_correct,
+                'consecutive_wrong': consecutive_wrong,
+                'grade': attempt['grade'],
+            }
+        })
+        
+    except Exception as e:
+        print(f"[ADAPTIVE NEXT QUESTION ERROR] {e}")
+        print(tb.format_exc())
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 
 @router.route('/submit', methods=['POST'])

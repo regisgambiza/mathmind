@@ -212,14 +212,21 @@ Example format:
 
   const parseAIQuestions = (aiResponse) => {
     try {
-      // Try to extract JSON from response
-      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+      // FIXED: Clean markdown code blocks from AI response
+      let cleanedResponse = aiResponse.trim();
+      
+      // Remove markdown code blocks (```json ... ```)
+      cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
+      // Try to extract JSON array from response
+      const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      return JSON.parse(aiResponse);
+      return JSON.parse(cleanedResponse);
     } catch (err) {
       console.error('Failed to parse AI questions:', err);
+      console.error('Raw AI response (first 200 chars):', aiResponse.substring(0, 200));
       // Fallback to demo questions
       return [
         {
