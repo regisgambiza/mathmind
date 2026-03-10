@@ -214,10 +214,10 @@ Example format:
     try {
       // FIXED: Clean markdown code blocks from AI response
       let cleanedResponse = aiResponse.trim();
-      
+
       // Remove markdown code blocks (```json ... ```)
       cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-      
+
       // Try to extract JSON array from response
       const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -320,7 +320,7 @@ Example format:
     if (isCorrect) {
       const newConsecutive = consecutiveCorrect + 1;
       setConsecutiveCorrect(newConsecutive);
-      
+
       // Show encouragement based on performance
       if (newConsecutive >= 3) {
         setAdaptiveMessage({
@@ -481,13 +481,12 @@ Example format:
             <span className="font-syne font-600 text-[9px] text-accent2 bg-accent2/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border border-accent2/20">
               {TYPE_LABELS[q.type] || q.type}
             </span>
-            <span className={`font-syne font-700 text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${
-              qDifficulty === 'advanced'
-                ? 'text-accent bg-accent/10 border-accent/20'
-                : qDifficulty === 'foundation'
-                  ? 'text-ink bg-ink/10 border-ink/20'
-                  : 'text-accent2 bg-accent2/10 border-accent2/20'
-            }`}>
+            <span className={`font-syne font-700 text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${qDifficulty === 'advanced'
+              ? 'text-accent bg-accent/10 border-accent/20'
+              : qDifficulty === 'foundation'
+                ? 'text-ink bg-ink/10 border-ink/20'
+                : 'text-accent2 bg-accent2/10 border-accent2/20'
+              }`}>
               {DIFFICULTY_LABELS[qDifficulty]}
             </span>
           </div>
@@ -511,13 +510,12 @@ Example format:
       <div className="flex-1 max-w-[480px] mx-auto w-full px-5 py-6">
         {/* Adaptive Feedback Message */}
         {adaptiveMessage && answered && (
-          <div className={`mb-4 p-4 rounded-xl border-2 animate-fadeUp ${
-            adaptiveMessage.type === 'excellent'
-              ? 'bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-300'
-              : adaptiveMessage.type === 'great'
-                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
-                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300'
-          }`}>
+          <div className={`mb-4 p-4 rounded-xl border-2 animate-fadeUp ${adaptiveMessage.type === 'excellent'
+            ? 'bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-300'
+            : adaptiveMessage.type === 'great'
+              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300'
+            }`}>
             <p className="font-syne font-700 text-sm text-center">
               {adaptiveMessage.text}
             </p>
@@ -530,20 +528,19 @@ Example format:
           <div className="flex items-center gap-1">
             {questions.map((q, i) => {
               const diff = normalizeDifficulty(q.difficulty);
-              const bgColor = diff === 'advanced' 
-                ? 'bg-accent' 
-                : diff === 'core' 
-                  ? 'bg-accent2' 
+              const bgColor = diff === 'advanced'
+                ? 'bg-accent'
+                : diff === 'core'
+                  ? 'bg-accent2'
                   : 'bg-border';
               const isActive = i === qIdx;
               const isAnswered = i < qIdx;
-              
+
               return (
                 <div
                   key={i}
-                  className={`w-6 h-2 rounded-full ${bgColor} ${
-                    isActive ? 'ring-2 ring-ink' : ''
-                  } ${isAnswered ? 'opacity-50' : ''}`}
+                  className={`w-6 h-2 rounded-full ${bgColor} ${isActive ? 'ring-2 ring-ink' : ''
+                    } ${isAnswered ? 'opacity-50' : ''}`}
                   title={`${diff} - Question ${i + 1}`}
                 />
               );
@@ -584,16 +581,14 @@ Example format:
 
         {/* Instant Feedback Panel */}
         {showFeedback && answered && (
-          <div className={`mt-4 p-4 rounded-xl border-2 animate-fadeUp ${
-            feedbackData?.isCorrect
-              ? 'border-correct bg-green-50'
-              : 'border-wrong bg-red-50'
-          }`}>
+          <div className={`mt-4 p-4 rounded-xl border-2 animate-fadeUp ${feedbackData?.isCorrect
+            ? 'border-correct bg-green-50'
+            : 'border-wrong bg-red-50'
+            }`}>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-2xl">{feedbackData?.isCorrect ? '✅' : '❌'}</span>
-              <span className={`font-syne font-700 text-base ${
-                feedbackData?.isCorrect ? 'text-correct' : 'text-wrong'
-              }`}>
+              <span className={`font-syne font-700 text-base ${feedbackData?.isCorrect ? 'text-correct' : 'text-wrong'
+                }`}>
                 {feedbackData?.isCorrect ? 'Correct!' : 'Not quite right'}
               </span>
             </div>

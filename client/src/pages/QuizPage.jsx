@@ -225,6 +225,9 @@ export default function QuizPage() {
     const lastAnswer = answers[qIdx];
     if (!lastAnswer || lastAnswer.is_correct === null) return;
 
+    // Get adaptive level from quiz config
+    const currentAdaptiveLevel = quizConfig?.adaptive_level || 'max';
+
     // Calculate new consecutive counts based on current answer
     const newConsecutiveCorrect = lastAnswer.is_correct === 1 ? (consecutiveCorrect + 1) : 0;
     const newConsecutiveWrong = lastAnswer.is_correct === 1 ? 0 : (consecutiveWrong + 1);
@@ -238,30 +241,71 @@ export default function QuizPage() {
       setConsecutiveCorrect(0);
     }
 
-    // Trigger adaptive adjustment if needed
+    // Trigger adaptive adjustment if needed (based on adaptive level)
     const remainingQuestions = currentQuestions.length - qIdx - 1;
     if (remainingQuestions <= 0) return;
 
-    // Use the NEW values for adaptive adjustment (not the stale ones)
-    // If 2+ consecutive wrong, suggest easier questions
-    if (newConsecutiveWrong >= 2) {
-      setAdaptiveAdjustment({
-        type: 'easier',
-        message: 'Let\'s focus on the fundamentals. Next question will be adjusted.',
-        adjustDifficulty: 'foundation',
-      });
+    let shouldAdjust = false;
+    let adjustType = null;
+
+    if (currentAdaptiveLevel === 'max') {
+      // Level 3: Most responsive (2 wrong or 3 correct)
+      if (newConsecutiveWrong >= 2) {
+        shouldAdjust = true;
+        adjustType = 'easier';
+      } else if (newConsecutiveCorrect >= 3) {
+        shouldAdjust = true;
+        adjustType = 'harder';
+      }
+    } else if (currentAdaptiveLevel === 'medium') {
+      // Level 2: Moderate (3 wrong or 4 correct)
+      if (newConsecutiveWrong >= 3) {
+        shouldAdjust = true;
+        adjustType = 'easier';
+      } else if (newConsecutiveCorrect >= 4) {
+        shouldAdjust = true;
+        adjustType = 'harder';
+      }
+    } else if (currentAdaptiveLevel === 'light') {
+      // Level 1: Messages only (3 wrong or 5 correct) - no difficulty change
+      if (newConsecutiveWrong >= 3 || newConsecutiveCorrect >= 5) {
+        shouldAdjust = true;
+        adjustType = 'message';  // Special type - message only
+      }
     }
-    // If 3+ consecutive correct, suggest harder questions
-    else if (newConsecutiveCorrect >= 3) {
-      setAdaptiveAdjustment({
-        type: 'harder',
-        message: 'You\'re crushing it! Next question will be more challenging.',
-        adjustDifficulty: 'advanced',
-      });
+    // Level 0 (none): No adjustment
+
+    // Set adaptive adjustment state
+    if (shouldAdjust) {
+      if (adjustType === 'message') {
+        setAdaptiveAdjustment({
+          type: 'message',
+          message: newConsecutiveWrong >= 3 
+            ? 'Take your time. Review each question carefully.'
+            : 'Excellent work! Keep it up!',
+          adjustDifficulty: null,  // No difficulty change for light adaptive
+        });
+      } else if (adjustType === 'easier') {
+        setAdaptiveAdjustment({
+          type: 'easier',
+          message: currentAdaptiveLevel === 'medium'
+            ? "Let's review the basics. Next question will be simpler."
+            : "Let's focus on the fundamentals. Next question will be adjusted.",
+          adjustDifficulty: 'foundation',
+        });
+      } else if (adjustType === 'harder') {
+        setAdaptiveAdjustment({
+          type: 'harder',
+          message: currentAdaptiveLevel === 'medium'
+            ? "Great job! Ready for a challenge?"
+            : "You're crushing it! Next question will be more challenging.",
+          adjustDifficulty: 'advanced',
+        });
+      }
     } else {
       setAdaptiveAdjustment(null);
     }
-  }, [answered, answers, qIdx, currentQuestions.length]);
+  }, [answered, answers, qIdx, currentQuestions.length, quizConfig?.adaptive_level]);
 
   if (!currentQuestions.length) {
     navigate('/student/join');
@@ -335,8 +379,11 @@ export default function QuizPage() {
     if (isLast) {
       submitQuiz(answers);
     } else {
+      // Get adaptive level from quiz config (default to 'max' if not set)
+      const currentAdaptiveLevel = quizConfig?.adaptive_level || 'max';
+      
       // Check if we need to generate an adaptive next question
-      if (adaptiveAdjustment?.adjustDifficulty) {
+      if (adaptiveAdjustment?.adjustDifficulty && currentAdaptiveLevel !== 'none') {
         try {
           // Call backend to get adaptive prompt
           const response = await api.post('/api/practice/next-question', {
@@ -349,29 +396,36 @@ export default function QuizPage() {
             topic: chapter || quizConfig?.topic,
             chapter: chapter,
             question_types: quizConfig?.question_types,
+            adaptive_level: currentAdaptiveLevel,  // none, light, medium, max
           });
 
-          const { next_difficulty, prompt, adjustment_message } = response.data;
+          const { next_difficulty, prompt, adjustment_message, should_generate } = response.data;
 
-          // Generate next question using AI
-          const aiResponse = await generateCompletion(prompt);
-          
-          // Parse the AI response (remove markdown if present)
-          let cleanedResponse = aiResponse.trim();
-          cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-          
-          const nextQuestion = JSON.parse(cleanedResponse);
-          
-          // Update the next question in the quiz
-          const updatedQuestions = [...currentQuestions];
-          updatedQuestions[qIdx + 1] = {
-            ...nextQuestion,
-            difficulty: next_difficulty,
-            skill_tag: response.data.context?.skill || qSkillTag,
-          };
-          setCurrentQuestions(updatedQuestions);
-          
-          console.log(`[Adaptive] ${adjustment_message} Adjusted to ${next_difficulty} difficulty`);
+          // Only generate new question if should_generate is true
+          if (should_generate && prompt) {
+            // Generate next question using AI
+            const aiResponse = await generateCompletion(prompt);
+            
+            // Parse the AI response (remove markdown if present)
+            let cleanedResponse = aiResponse.trim();
+            cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+            
+            const nextQuestion = JSON.parse(cleanedResponse);
+            
+            // Update the next question in the quiz
+            const updatedQuestions = [...currentQuestions];
+            updatedQuestions[qIdx + 1] = {
+              ...nextQuestion,
+              difficulty: next_difficulty,
+              skill_tag: response.data.context?.skill || qSkillTag,
+            };
+            setCurrentQuestions(updatedQuestions);
+            
+            console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message} Adjusted to ${next_difficulty} difficulty`);
+          } else if (adjustment_message) {
+            // Light adaptive - just show message
+            console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message}`);
+          }
         } catch (err) {
           console.error('[Adaptive] Failed to generate next question:', err);
           // Continue with existing question if adaptive fails

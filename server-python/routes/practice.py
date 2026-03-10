@@ -196,6 +196,12 @@ def get_next_adaptive_question():
     """
     FIXED: Generate next question based on real-time performance.
     Works for ALL quiz types: practice, class activities, topic quizzes.
+    
+    ADAPTIVE LEVELS:
+    - Level 0 (none): No adaptation, questions stay as generated
+    - Level 1 (light): Show encouragement/warning messages only, no difficulty change
+    - Level 2 (medium): Adjust after 3+ consecutive same performance, subtle changes
+    - Level 3 (max): Full adaptation, adjust after 2 wrong or 3 correct (current behavior)
     """
     import traceback as tb
     data = request.get_json()
@@ -208,6 +214,7 @@ def get_next_adaptive_question():
     topic = data.get('topic')
     chapter = data.get('chapter')
     question_types = data.get('question_types', ['multiple_choice'])
+    adaptive_level = data.get('adaptive_level', 'max')  # none, light, medium, max
     
     try:
         conn = db.get_db()
@@ -223,31 +230,77 @@ def get_next_adaptive_question():
         if not attempt:
             return jsonify({'error': 'Attempt not found'}), 404
         
-        # Determine next difficulty based on performance
-        if consecutive_wrong >= 2:
-            # Struggling - go easier
-            next_difficulty = 'foundation'
-            adjustment_reason = 'consecutive_wrong'
-            adjustment_msg = "Let's focus on the fundamentals."
-        elif consecutive_correct >= 3:
-            # Excelling - increase challenge
-            next_difficulty = 'advanced'
-            adjustment_reason = 'consecutive_correct'
-            adjustment_msg = "You're crushing it! Time for a challenge."
-        elif not previous_correct:
-            # Got last one wrong - stay same or go easier
-            next_difficulty = 'foundation' if current_difficulty == 'advanced' else current_difficulty
-            adjustment_reason = 'last_wrong'
-            adjustment_msg = "Let's review this concept."
-        elif previous_correct:
-            # Got last one right - can go harder
-            next_difficulty = 'advanced' if current_difficulty == 'foundation' else current_difficulty
-            adjustment_reason = 'last_correct'
-            adjustment_msg = "Great work! Let's build on that."
-        else:
-            next_difficulty = current_difficulty
-            adjustment_reason = 'none'
-            adjustment_msg = "Keep going!"
+        # ADAPTIVE LEVEL 0: No adaptation
+        if adaptive_level == 'none':
+            return jsonify({
+                'success': True,
+                'next_difficulty': current_difficulty,
+                'adjustment_reason': 'none',
+                'adjustment_message': '',
+                'prompt': None,  # No new question generation
+                'question_type': None,
+                'adaptive_level': 'none',
+                'context': {
+                    'topic': topic or attempt['topic'],
+                    'chapter': chapter or attempt['chapter'],
+                    'skill': skill_tag,
+                    'consecutive_correct': consecutive_correct,
+                    'consecutive_wrong': consecutive_wrong,
+                    'grade': attempt['grade'],
+                }
+            })
+        
+        # Determine next difficulty based on adaptive level
+        next_difficulty = current_difficulty
+        adjustment_reason = 'none'
+        adjustment_msg = ''
+        should_generate = False
+        
+        if adaptive_level == 'light':
+            # Level 1: Messages only, no difficulty change
+            if consecutive_wrong >= 3:
+                adjustment_msg = "Take your time. Review each question carefully."
+                adjustment_reason = 'encouragement'
+            elif consecutive_correct >= 5:
+                adjustment_msg = "Excellent work! Keep it up!"
+                adjustment_reason = 'praise'
+            # No difficulty change, no new question generation
+        
+        elif adaptive_level == 'medium':
+            # Level 2: Adjust after 3+ consecutive same performance
+            if consecutive_wrong >= 3:
+                next_difficulty = 'foundation'
+                adjustment_reason = 'consecutive_wrong'
+                adjustment_msg = "Let's review the basics. Next question will be simpler."
+                should_generate = True
+            elif consecutive_correct >= 4:
+                next_difficulty = 'advanced' if current_difficulty != 'advanced' else current_difficulty
+                adjustment_reason = 'consecutive_correct'
+                adjustment_msg = "Great job! Ready for a challenge?"
+                should_generate = True
+        
+        elif adaptive_level == 'max':
+            # Level 3: Full adaptation (current behavior)
+            if consecutive_wrong >= 2:
+                next_difficulty = 'foundation'
+                adjustment_reason = 'consecutive_wrong'
+                adjustment_msg = "Let's focus on the fundamentals."
+                should_generate = True
+            elif consecutive_correct >= 3:
+                next_difficulty = 'advanced'
+                adjustment_reason = 'consecutive_correct'
+                adjustment_msg = "You're crushing it! Time for a challenge."
+                should_generate = True
+            elif not previous_correct:
+                next_difficulty = 'foundation' if current_difficulty == 'advanced' else current_difficulty
+                adjustment_reason = 'last_wrong'
+                adjustment_msg = "Let's review this concept."
+                should_generate = next_difficulty != current_difficulty
+            elif previous_correct:
+                next_difficulty = 'advanced' if current_difficulty == 'foundation' else current_difficulty
+                adjustment_reason = 'last_correct'
+                adjustment_msg = "Great work! Let's build on that."
+                should_generate = next_difficulty != current_difficulty
         
         # Parse question types from database
         db_question_types = attempt['question_types']
@@ -261,10 +314,12 @@ def get_next_adaptive_question():
         
         # Select random question type from available types
         import random
-        selected_type = random.choice(question_types) if question_types else 'multiple_choice'
+        selected_type = random.choice(question_types) if question_types and should_generate else 'multiple_choice'
         
-        # Build prompt for AI to generate adaptive question
-        prompt = f"""Generate a {next_difficulty} difficulty math question for grade {attempt['grade'] or '7'}.
+        # Build prompt for AI to generate adaptive question (only if should_generate)
+        prompt = None
+        if should_generate and next_difficulty != current_difficulty:
+            prompt = f"""Generate a {next_difficulty} difficulty math question for grade {attempt['grade'] or '7'}.
 
 Topic: {topic or attempt['topic'] or 'General Math'}
 Chapter: {chapter or attempt['chapter'] or ''}
@@ -396,7 +451,9 @@ Do NOT include markdown code blocks. Return raw JSON only."""
             'adjustment_reason': adjustment_reason,
             'adjustment_message': adjustment_msg,
             'prompt': prompt,
-            'question_type': selected_type,
+            'question_type': selected_type if should_generate else None,
+            'should_generate': should_generate,
+            'adaptive_level': adaptive_level,
             'context': {
                 'topic': topic or attempt['topic'],
                 'chapter': chapter or attempt['chapter'],
