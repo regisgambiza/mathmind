@@ -221,32 +221,37 @@ export default function QuizPage() {
   // Check for adaptive difficulty adjustment after each answer
   useEffect(() => {
     if (answers.length === 0 || !answered) return;
-    
+
     const lastAnswer = answers[qIdx];
     if (!lastAnswer || lastAnswer.is_correct === null) return;
-    
+
+    // Calculate new consecutive counts based on current answer
+    const newConsecutiveCorrect = lastAnswer.is_correct === 1 ? (consecutiveCorrect + 1) : 0;
+    const newConsecutiveWrong = lastAnswer.is_correct === 1 ? 0 : (consecutiveWrong + 1);
+
     // Update consecutive counters
     if (lastAnswer.is_correct === 1) {
-      setConsecutiveCorrect(prev => prev + 1);
+      setConsecutiveCorrect(newConsecutiveCorrect);
       setConsecutiveWrong(0);
     } else {
-      setConsecutiveWrong(prev => prev + 1);
+      setConsecutiveWrong(newConsecutiveWrong);
       setConsecutiveCorrect(0);
     }
-    
+
     // Trigger adaptive adjustment if needed
     const remainingQuestions = currentQuestions.length - qIdx - 1;
     if (remainingQuestions <= 0) return;
-    
+
+    // Use the NEW values for adaptive adjustment (not the stale ones)
     // If 3+ consecutive wrong, show easier adjustment message
-    if (consecutiveWrong >= 2) {
+    if (newConsecutiveWrong >= 2) {
       setAdaptiveAdjustment({
         type: 'easier',
         message: 'Taking a breath? Let\'s focus on the fundamentals.',
       });
     }
     // If 3+ consecutive correct, show harder adjustment message
-    else if (consecutiveCorrect >= 3) {
+    else if (newConsecutiveCorrect >= 3) {
       setAdaptiveAdjustment({
         type: 'harder',
         message: 'You\'re crushing it! Ready for a challenge?',
@@ -254,7 +259,7 @@ export default function QuizPage() {
     } else {
       setAdaptiveAdjustment(null);
     }
-  }, [answered, answers, qIdx, consecutiveWrong, consecutiveCorrect, currentQuestions.length]);
+  }, [answered, answers, qIdx, currentQuestions.length]);
 
   if (!currentQuestions.length) {
     navigate('/student/join');

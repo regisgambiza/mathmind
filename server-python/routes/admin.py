@@ -886,6 +886,123 @@ def update_assignment(id):
         return jsonify({'error': str(e)}), 500
 
 
+# ADDED: Question sets endpoints for AI-generated content
+@router.route('/content/question-sets', methods=['POST'])
+def create_question_set():
+    data = request.get_json()
+    try:
+        conn = db.get_db()
+        questions = data.get('questions') if isinstance(data.get('questions'), list) else None
+        
+        if not questions or len(questions) == 0:
+            return jsonify({'error': 'questions is required'}), 400
+        
+        quiz_code = safe_string(data.get('quiz_code', '')).upper() if data.get('quiz_code') else None
+        attempt_id = data.get('attempt_id')
+        student_id = data.get('student_id')
+        
+        cursor = conn.execute('''
+            INSERT INTO generated_question_sets (quiz_code, attempt_id, student_id, questions_json, status)
+            VALUES (?, ?, ?, ?, 'pending')
+        ''', (quiz_code, attempt_id, student_id, json.dumps(questions)))
+        conn.commit()
+        
+        return jsonify({'success': True, 'id': cursor.lastrowid})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@router.route('/content/question-sets', methods=['GET'])
+def get_question_sets():
+    try:
+        conn = db.get_db()
+        status = request.args.get('status', '')
+        
+        if status:
+            rows = conn.execute('''
+                SELECT * FROM generated_question_sets
+                WHERE status = ?
+                ORDER BY datetime(created_at) DESC
+                LIMIT 300
+            ''', (status,)).fetchall()
+        else:
+            rows = conn.execute('''
+                SELECT * FROM generated_question_sets
+                ORDER BY datetime(created_at) DESC
+                LIMIT 300
+            ''').fetchall()
+        
+        result = []
+        for r in rows:
+            row_dict = dict(r)
+            try:
+                row_dict['questions'] = json.loads(r['questions_json']) if r['questions_json'] else []
+            except:
+                row_dict['questions'] = []
+            result.append(row_dict)
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@router.route('/content/question-sets/<id>', methods=['PATCH'])
+def update_question_set(id):
+    data = request.get_json()
+    try:
+        conn = db.get_db()
+        question_id = to_int(id, 0)
+        status = safe_string(data.get('status', ''))
+        
+        if status not in ['approved', 'rejected', 'pending']:
+            return jsonify({'error': 'status must be approved/rejected/pending'}), 400
+        
+        reviewer = safe_string(data.get('reviewer', 'admin'))
+        notes = safe_string(data.get('notes')) if data.get('notes') else None
+        
+        conn.execute('''
+            UPDATE generated_question_sets
+            SET status = ?, reviewer = ?, notes = ?, 
+                reviewed_at = CASE WHEN ? IN ('approved', 'rejected') THEN datetime('now') ELSE reviewed_at END
+            WHERE id = ?
+        ''', (status, reviewer, notes, status, question_id))
+        conn.commit()
+        
+        log_audit(conn,
+            actor=reviewer,
+            action='content_review.update',
+            target_type='generated_question_set',
+            target_id=question_id,
+            detail={'status': status},
+        )
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@router.route('/system/events', methods=['POST'])
+def create_system_event():
+    """ADDED: System events endpoint for error logging"""
+    data = request.get_json()
+    try:
+        conn = db.get_db()
+        conn.execute('''
+            INSERT INTO system_events (event_type, level, message, path, detail_json)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            data.get('event_type', 'unknown'),
+            data.get('level', 'info'),
+            data.get('message', ''),
+            data.get('path', ''),
+            json.dumps(data.get('detail', {}))
+        ))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @router.route('/audit-logs', methods=['GET'])
 def get_audit_logs():
     try:

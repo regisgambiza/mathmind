@@ -346,6 +346,7 @@ def get_db():
     if not hasattr(_thread_local, 'db'):
         _thread_local.db = sqlite3.connect(DB_PATH, check_same_thread=False)
         _thread_local.db.row_factory = sqlite3.Row
+        # FIXED: WAL mode for concurrent access (129 students)
         _thread_local.db.execute('PRAGMA journal_mode=WAL')
     return _thread_local.db
 

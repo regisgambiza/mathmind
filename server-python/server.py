@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 import db
@@ -6,10 +6,20 @@ from datetime import datetime
 import json
 import os
 
+# FIXED: Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'mathmind-secret-key'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'mathmind-secret-key')
 app.url_map.strict_slashes = False
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# FIXED: CORS for localhost:5173 and 127.0.0.1:5173 (frontend dev server)
+# Allow all methods including OPTIONS for preflight
+CORS(app, 
+     resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173", "*"]}},
+     supports_credentials=True,
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
@@ -42,10 +52,12 @@ def handle_join_quiz(code):
             pass
         print(f'[Socket] Student joined quiz: {quiz_code}, Socket: {request.sid}')
 
-        # Notify teacher that student joined
+        # FIXED: Emit consistent student_joined event shape matching Node.js attempt/start
+        # Note: This is for socket-based join, attempt/start emits the full shape with attempt_id
         socketio.emit('student_joined', {
             'socket_id': request.sid,
             'joined_at': datetime.utcnow().isoformat(),
+            'quiz_code': quiz_code,
         }, room=quiz_code)
 
 @socketio.on('student_progress')
