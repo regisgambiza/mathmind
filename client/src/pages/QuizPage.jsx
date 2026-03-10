@@ -71,6 +71,8 @@ export default function QuizPage() {
   const [socket, setSocket] = useState(null);
 
   const [timeLeft, setTimeLeft] = useState(timeLimit ? timeLimit * 60 : null);
+  const [loadingNext, setLoadingNext] = useState(false);
+  const nextClickRef = useRef(false);
 
   // Setup socket connection for live tracking
   useEffect(() => {
@@ -376,63 +378,72 @@ export default function QuizPage() {
   };
 
   const handleNext = async () => {
-    if (isLast) {
-      submitQuiz(answers);
-    } else {
-      // Get adaptive level from quiz config (default to 'max' if not set)
-      const currentAdaptiveLevel = quizConfig?.adaptive_level || 'max';
-      
-      // Check if we need to generate an adaptive next question
-      if (adaptiveAdjustment?.adjustDifficulty && currentAdaptiveLevel !== 'none') {
-        try {
-          // Call backend to get adaptive prompt
-          const response = await api.post('/api/practice/next-question', {
-            attempt_id: attemptId,
-            previous_correct: answers[qIdx]?.is_correct === 1,
-            consecutive_wrong: consecutiveWrong,
-            consecutive_correct: consecutiveCorrect,
-            current_difficulty: qDifficulty,
-            skill_tag: qSkillTag || chapter || quizConfig?.topic,
-            topic: chapter || quizConfig?.topic,
-            chapter: chapter,
-            question_types: quizConfig?.question_types,
-            adaptive_level: currentAdaptiveLevel,  // none, light, medium, max
-          });
+    if (loadingNext || !answered) return;
+    nextClickRef.current = true;
+    setLoadingNext(true);
 
-          const { next_difficulty, prompt, adjustment_message, should_generate } = response.data;
+    try {
+      if (isLast) {
+        await submitQuiz(answers);
+      } else {
+        // Get adaptive level from quiz config (default to 'max' if not set)
+        const currentAdaptiveLevel = quizConfig?.adaptive_level || 'max';
 
-          // Only generate new question if should_generate is true
-          if (should_generate && prompt) {
-            // Generate next question using AI
-            const aiResponse = await generateCompletion(prompt);
-            
-            // Parse the AI response (remove markdown if present)
-            let cleanedResponse = aiResponse.trim();
-            cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-            
-            const nextQuestion = JSON.parse(cleanedResponse);
-            
-            // Update the next question in the quiz
-            const updatedQuestions = [...currentQuestions];
-            updatedQuestions[qIdx + 1] = {
-              ...nextQuestion,
-              difficulty: next_difficulty,
-              skill_tag: response.data.context?.skill || qSkillTag,
-            };
-            setCurrentQuestions(updatedQuestions);
-            
-            console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message} Adjusted to ${next_difficulty} difficulty`);
-          } else if (adjustment_message) {
-            // Light adaptive - just show message
-            console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message}`);
+        // Check if we need to generate an adaptive next question
+        if (adaptiveAdjustment?.adjustDifficulty && currentAdaptiveLevel !== 'none') {
+          try {
+            // Call backend to get adaptive prompt
+            const response = await api.post('/api/practice/next-question', {
+              attempt_id: attemptId,
+              previous_correct: answers[qIdx]?.is_correct === 1,
+              consecutive_wrong: consecutiveWrong,
+              consecutive_correct: consecutiveCorrect,
+              current_difficulty: qDifficulty,
+              skill_tag: qSkillTag || chapter || quizConfig?.topic,
+              topic: chapter || quizConfig?.topic,
+              chapter: chapter,
+              question_types: quizConfig?.question_types,
+              adaptive_level: currentAdaptiveLevel,
+            });
+
+            const { next_difficulty, prompt, adjustment_message, should_generate } = response.data;
+
+            // Only generate new question if should_generate is true
+            if (should_generate && prompt) {
+              // Generate next question using AI
+              const aiResponse = await generateCompletion(prompt);
+
+              // Parse the AI response (remove markdown if present)
+              let cleanedResponse = aiResponse.trim();
+              cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+              const nextQuestion = JSON.parse(cleanedResponse);
+
+              // Update the next question in the quiz
+              const updatedQuestions = [...currentQuestions];
+              updatedQuestions[qIdx + 1] = {
+                ...nextQuestion,
+                difficulty: next_difficulty,
+                skill_tag: response.data.context?.skill || qSkillTag,
+              };
+              setCurrentQuestions(updatedQuestions);
+
+              console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message} Adjusted to ${next_difficulty} difficulty`);
+            } else if (adjustment_message) {
+              // Light adaptive - just show message
+              console.log(`[Adaptive ${currentAdaptiveLevel.toUpperCase()}] ${adjustment_message}`);
+            }
+          } catch (err) {
+            console.error('[Adaptive] Failed to generate next question:', err);
+            // Continue with existing question if adaptive fails
           }
-        } catch (err) {
-          console.error('[Adaptive] Failed to generate next question:', err);
-          // Continue with existing question if adaptive fails
         }
+
+        setQIdx(i => i + 1);
       }
-      
-      setQIdx(i => i + 1);
+    } finally {
+      setLoadingNext(false);
+      nextClickRef.current = false;
     }
   };
 
@@ -440,16 +451,16 @@ export default function QuizPage() {
     <div className="min-h-screen bg-paper flex flex-col">
       <TopBar title={`Question ${qIdx + 1} of ${currentQuestions.length}`} role="student" />
 
-      <div className="sticky top-[57px] z-30 bg-paper/90 backdrop-blur-md px-5 py-3 border-b border-border shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+      <div className="sticky top-[57px] z-30 bg-paper/90 backdrop-blur-md px-4 sm:px-5 py-3 border-b border-border shadow-sm">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
             <TopicCard chapter={chapter || quizConfig?.topic} subtopics={subtopics} compact={true} />
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className="font-syne font-600 text-[9px] text-accent2 bg-accent2/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border border-accent2/20">
+            <span className="font-syne font-600 text-[10px] sm:text-[9px] text-accent2 bg-accent2/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border border-accent2/20">
               {TYPE_LABELS[q.type] || q.type}
             </span>
-            <span className={`font-syne font-700 text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${
+            <span className={`font-syne font-700 text-[10px] sm:text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${
               qDifficulty === 'advanced'
                 ? 'text-accent bg-accent/10 border-accent/20'
                 : qDifficulty === 'foundation'
@@ -458,7 +469,7 @@ export default function QuizPage() {
             }`}>
               {DIFFICULTY_LABELS[qDifficulty]}
             </span>
-            <span className="font-dm text-[10px] text-muted font-600 uppercase tracking-tighter tabular-nums">Q{qIdx + 1} of {currentQuestions.length}</span>
+            <span className="font-dm text-[11px] sm:text-[10px] text-muted font-600 uppercase tracking-tighter tabular-nums">Q{qIdx + 1} of {currentQuestions.length}</span>
           </div>
         </div>
 
@@ -474,7 +485,7 @@ export default function QuizPage() {
         <ProgressBar current={qIdx + (answered ? 1 : 0)} total={currentQuestions.length} />
       </div>
 
-      <div className="flex-1 max-w-[480px] mx-auto w-full px-5 py-6">
+      <div className="flex-1 max-w-[480px] mx-auto w-full px-4 sm:px-5 py-4 sm:py-6">
         {/* Adaptive Adjustment Notification */}
         {adaptiveAdjustment && answered && (
           <div className={`mb-4 p-4 rounded-xl border-2 animate-fadeUp ${
@@ -543,7 +554,7 @@ export default function QuizPage() {
       </div>
 
       {/* Footer */}
-      <div className="sticky bottom-0 bg-paper border-t border-border px-5 py-4 max-w-[480px] mx-auto w-full">
+      <div className="sticky bottom-0 bg-paper border-t border-border px-4 sm:px-5 py-4 max-w-[480px] mx-auto w-full">
         <div className="flex items-center gap-3 mb-3">
           <button
             onClick={handleGetHint}
@@ -556,10 +567,20 @@ export default function QuizPage() {
         </div>
         <button
           onClick={handleNext}
-          disabled={!answered}
-          className="w-full py-4 rounded-xl bg-ink text-paper font-syne font-700 text-base disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/90 active:scale-[0.98] transition-all"
+          disabled={!answered || loadingNext}
+          className="w-full py-4 rounded-xl bg-ink text-paper font-syne font-700 text-base disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
-          {isLast ? 'See Results →' : 'Next →'}
+          {loadingNext ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              {isLast ? 'Submitting...' : 'Generating Next...'}
+            </>
+          ) : (
+            <>{isLast ? 'See Results →' : 'Next →'}</>
+          )}
         </button>
       </div>
 

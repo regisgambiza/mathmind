@@ -213,7 +213,7 @@ export default function TeacherDashboard() {
 
       {/* Summary Stats */}
       {students.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="bg-card border-2 border-border rounded-xl p-4">
             <p className="font-dm text-[10px] uppercase text-muted">Completion</p>
             <p className="font-syne font-800 text-2xl text-ink mt-1">{stats.completionRate}%</p>
@@ -343,7 +343,7 @@ export default function TeacherDashboard() {
               <span className="w-2 h-2 bg-accent2 rounded-full animate-pulse" />
               <h3 className="font-syne font-700 text-lg text-ink">In Progress ({inProgress.length})</h3>
             </div>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {inProgress.map((s) => <StudentCard key={s.attempt_id} student={s} />)}
             </div>
           </section>
@@ -356,7 +356,7 @@ export default function TeacherDashboard() {
               <span className="w-2 h-2 bg-correct rounded-full" />
               <h3 className="font-syne font-700 text-lg text-ink">Completed ({completed.length})</h3>
             </div>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {completed
                 .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
                 .map((s) => <StudentCard key={s.attempt_id} student={s} />)

@@ -68,7 +68,9 @@ export default function PracticeQuizPage() {
   const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
   const [adaptiveMessage, setAdaptiveMessage] = useState(null);
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
+  const [loadingNext, setLoadingNext] = useState(false);
   const qStartRef = useRef(Date.now());
+  const nextClickRef = useRef(false);
 
   useEffect(() => {
     if (generatedQuestions) return;
@@ -353,34 +355,44 @@ Example format:
       }
     }
 
-    // Generate explanation if wrong or if student wants to learn
+    // Generate explanation in background (non-blocking)
+    // Don't await - let it run asynchronously so user can continue
     if (!isCorrect || !q.explanation) {
       setLoadingExplanation(true);
-      try {
-        const expl = await generateExplanation({
-          question: q,
-          studentAnswer,
-          correctAnswer,
-          isCorrect,
-          generateCompletion,
+      generateExplanation({
+        question: q,
+        studentAnswer,
+        correctAnswer,
+        isCorrect,
+        generateCompletion,
+      })
+        .then(setExplanation)
+        .catch((err) => {
+          console.error('Explanation generation failed:', err);
+          setExplanation(q.explanation || 'Review the concept and try similar problems.');
+        })
+        .finally(() => {
+          setLoadingExplanation(false);
         });
-        setExplanation(expl);
-      } catch (err) {
-        console.error('Explanation generation failed:', err);
-        setExplanation(q.explanation || 'Review the concept and try similar problems.');
-      } finally {
-        setLoadingExplanation(false);
-      }
     } else {
       setExplanation(q.explanation);
     }
   };
 
-  const handleNext = () => {
-    if (qIdx < questions.length - 1) {
-      setQIdx(i => i + 1);
-    } else {
-      completePractice();
+  const handleNext = async () => {
+    if (nextClickRef.current || loadingNext) return;
+    nextClickRef.current = true;
+    setLoadingNext(true);
+
+    try {
+      if (qIdx < questions.length - 1) {
+        setQIdx(i => i + 1);
+      } else {
+        await completePractice();
+      }
+    } finally {
+      setLoadingNext(false);
+      nextClickRef.current = false;
     }
   };
 
@@ -468,8 +480,8 @@ Example format:
         onBack={() => navigate('/student/practice')}
       />
 
-      <div className="sticky top-[57px] z-30 bg-paper/90 backdrop-blur-md px-5 py-3 border-b border-border shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+      <div className="sticky top-[57px] z-30 bg-paper/90 backdrop-blur-md px-4 sm:px-5 py-3 border-b border-border shadow-sm">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
             <TopicCard
               chapter={practiceTopic || practiceSkill}
@@ -478,10 +490,10 @@ Example format:
             />
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className="font-syne font-600 text-[9px] text-accent2 bg-accent2/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border border-accent2/20">
+            <span className="font-syne font-600 text-[10px] sm:text-[9px] text-accent2 bg-accent2/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border border-accent2/20">
               {TYPE_LABELS[q.type] || q.type}
             </span>
-            <span className={`font-syne font-700 text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${qDifficulty === 'advanced'
+            <span className={`font-syne font-700 text-[10px] sm:text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap border ${qDifficulty === 'advanced'
               ? 'text-accent bg-accent/10 border-accent/20'
               : qDifficulty === 'foundation'
                 ? 'text-ink bg-ink/10 border-ink/20'
@@ -507,7 +519,7 @@ Example format:
         </div>
       </div>
 
-      <div className="flex-1 max-w-[480px] mx-auto w-full px-5 py-6">
+      <div className="flex-1 max-w-[480px] mx-auto w-full px-4 sm:px-5 py-4 sm:py-6">
         {/* Adaptive Feedback Message */}
         {adaptiveMessage && answered && (
           <div className={`mb-4 p-4 rounded-xl border-2 animate-fadeUp ${adaptiveMessage.type === 'excellent'
@@ -611,7 +623,7 @@ Example format:
       </div>
 
       {/* Footer */}
-      <div className="sticky bottom-0 bg-paper border-t border-border px-5 py-4 max-w-[480px] mx-auto w-full">
+      <div className="sticky bottom-0 bg-paper border-t border-border px-4 sm:px-5 py-4 max-w-[480px] mx-auto w-full">
         <div className="flex items-center gap-3 mb-3">
           <button
             onClick={handleGetHint}
@@ -624,10 +636,20 @@ Example format:
         </div>
         <button
           onClick={handleNext}
-          disabled={!answered}
-          className="w-full py-4 rounded-xl bg-ink text-paper font-syne font-700 text-base disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/90 active:scale-[0.98] transition-all"
+          disabled={!answered || loadingNext}
+          className="w-full py-4 rounded-xl bg-ink text-paper font-syne font-700 text-base disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
-          {isLast ? 'Finish Practice →' : 'Next Question →'}
+          {loadingNext ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              {isLast ? 'Finishing...' : 'Loading Next...'}
+            </>
+          ) : (
+            <>{isLast ? 'Finish Practice →' : 'Next Question →'}</>
+          )}
         </button>
       </div>
     </div>
