@@ -4,6 +4,20 @@ const RegisContext = createContext(null);
 
 const STORAGE_KEY = 'mathmind_regis_config';
 
+// Hardcoded OpenRouter model fallback chain - tries each in order until one works
+const MODEL_FALLBACK_CHAIN = [
+    'google/gemma-2-9b-it:free',
+    'meta-llama/llama-3-8b-instruct:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'qwen/qwen-2.5-7b-instruct:free',
+    'mistralai/mistral-7b-instruct:free',
+    'openai/gpt-oss-120b:free',
+    'qwen/qwen3-4b:free',
+    'google/gemma-3-27b-it:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'openrouter/free', // Ultimate fallback - any free model
+];
+
 function loadConfig() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -15,130 +29,110 @@ function loadConfig() {
 export function RegisProvider({ children }) {
     const saved = loadConfig();
 
-    // Default to Ollama for local free usage
-    const [provider, setProviderState] = useState(saved.provider || 'ollama');
+    // Hardcoded to OpenRouter - no provider toggle
     const [apiKey, setApiKeyState] = useState(saved.apiKey || '');
-
-    // Default model for Ollama - qwen3.5 is installed
-    const [model, setModelState] = useState(saved.model || 'qwen3.5');
-    const [baseUrl, setBaseUrlState] = useState(saved.baseUrl || '');
 
     const save = (updates) => {
         const current = loadConfig();
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...updates }));
     };
 
-    const setProvider = (v) => { setProviderState(v); save({ provider: v }); };
     const setApiKey = (v) => { setApiKeyState(v); save({ apiKey: v }); };
-    const setModel = (v) => { setModelState(v); save({ model: v }); };
-    const setBaseUrl = (v) => { setBaseUrlState(v); save({ baseUrl: v }); };
 
-    const generateCompletion = useCallback(async (prompt) => {
+    const generateCompletion = useCallback(async (prompt, modelIndex = 0) => {
         console.log('[RegisContext] generateCompletion called');
-        console.log('[RegisContext] Provider:', provider);
-        console.log('[RegisContext] Model:', model);
+        console.log('[RegisContext] Attempting model:', MODEL_FALLBACK_CHAIN[modelIndex]);
 
         try {
-            if (provider === 'ollama') {
-                // Ollama local model
-                const ollamaUrl = baseUrl || 'http://localhost:11434';
-                console.log('[RegisContext] Sending request to Ollama:', ollamaUrl);
-                
-                const res = await fetch(`${ollamaUrl}/api/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: model || 'qwen3.5',
-                        messages: [{ role: 'user', content: prompt }],
-                        stream: false,
-                    }),
-                });
+            if (!apiKey) {
+                console.error('[RegisContext] OpenRouter API Key missing');
+                throw new Error('OpenRouter API Key is missing. Please check your Regis settings ⚙️');
+            }
 
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error?.message || `Ollama error: ${res.status} ${res.statusText}`);
+            const currentModel = MODEL_FALLBACK_CHAIN[modelIndex];
+            console.log('[RegisContext] Sending request to OpenRouter with model:', currentModel);
+
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'MathMind',
+                },
+                body: JSON.stringify({
+                    model: currentModel,
+                    messages: [{ role: 'user', content: prompt }],
+                    stream: true,
+                }),
+            });
+
+            console.log('[RegisContext] OpenRouter response status:', res.status, res.statusText);
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.error('[RegisContext] OpenRouter Error Data:', err);
+
+                // If this model failed, try the next one in the fallback chain
+                if (modelIndex < MODEL_FALLBACK_CHAIN.length - 1) {
+                    console.log('[RegisContext] Model failed, trying next in chain...');
+                    return generateCompletion(prompt, modelIndex + 1);
                 }
 
-                const data = await res.json();
-                const content = data.message?.content || '';
-                console.log('[RegisContext] Ollama response received, length:', content.length);
-                return content;
+                throw new Error(err.error?.message || `OpenRouter error: ${res.status} ${res.statusText}`);
+            }
 
-            } else {
-                // OpenRouter cloud model
-                if (!apiKey) {
-                    console.error('[RegisContext] OpenRouter API Key missing');
-                    throw new Error('OpenRouter API Key is missing. Please check your Regis settings ⚙️');
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let result = '';
+            let buffer = '';
+            let chunkCount = 0;
+
+            console.log('[RegisContext] Starting OpenRouter stream read...');
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    console.log('[RegisContext] OpenRouter stream done. Total chunks:', chunkCount);
+                    break;
                 }
+                chunkCount++;
 
-                console.log('[RegisContext] Sending request to OpenRouter...');
-                const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': 'MathMind',
-                    },
-                    body: JSON.stringify({
-                        model: model || 'qwen/qwen-2.5-7b-instruct',
-                        messages: [{ role: 'user', content: prompt }],
-                        stream: true,
-                    }),
-                });
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
-                console.log('[RegisContext] OpenRouter response status:', res.status, res.statusText);
-
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    console.error('[RegisContext] OpenRouter Error Data:', err);
-                    throw new Error(err.error?.message || `OpenRouter error: ${res.status} ${res.statusText}`);
-                }
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let result = '';
-                let buffer = '';
-                let chunkCount = 0;
-
-                console.log('[RegisContext] Starting OpenRouter stream read...');
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        console.log('[RegisContext] OpenRouter stream done. Total chunks:', chunkCount);
-                        break;
-                    }
-                    chunkCount++;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ') && !line.includes('[DONE]')) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
-                                if (data.choices?.[0]?.delta?.content) {
-                                    result += data.choices[0].delta.content;
-                                }
-                            } catch (e) {
-                                // Ignore incomplete JSON
+                for (const line of lines) {
+                    if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.choices?.[0]?.delta?.content) {
+                                result += data.choices[0].delta.content;
                             }
+                        } catch (e) {
+                            // Ignore incomplete JSON
                         }
                     }
                 }
-                console.log('[RegisContext] OpenRouter final result length:', result.length);
-                return result;
             }
+            console.log('[RegisContext] OpenRouter final result length:', result.length);
+            console.log('[RegisContext] Success with model:', currentModel);
+            return result;
 
         } catch (err) {
             console.error('[RegisContext] generateCompletion error:', err);
+
+            // If this model failed with exception, try the next one
+            if (modelIndex < MODEL_FALLBACK_CHAIN.length - 1) {
+                console.log('[RegisContext] Model failed with error, trying next in chain...');
+                return generateCompletion(prompt, modelIndex + 1);
+            }
+
             throw err;
         }
-    }, [provider, model, apiKey, baseUrl]);
+    }, [apiKey]);
 
     return (
-        <RegisContext.Provider value={{ provider, setProvider, apiKey, setApiKey, model, setModel, baseUrl, setBaseUrl, generateCompletion }}>
+        <RegisContext.Provider value={{ provider: 'openrouter', apiKey, setApiKey, model: MODEL_FALLBACK_CHAIN[0], MODEL_FALLBACK_CHAIN, generateCompletion }}>
             {children}
         </RegisContext.Provider>
     );
