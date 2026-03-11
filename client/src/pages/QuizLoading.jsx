@@ -550,11 +550,23 @@ export default function QuizLoading() {
   const isRunActive = (runId) => activeRunRef.current === runId;
 
   const fetchQuizMeta = async (runId) => {
-    if (!quizCode || quizCode === 'DEMO') return null;
+    console.log('[QuizLoading] fetchQuizMeta called, runId:', runId);
+    console.log('[QuizLoading] activeRunRef.current:', activeRunRef.current);
+    console.log('[QuizLoading] quizCode:', quizCode);
+    if (!quizCode || quizCode === 'DEMO') {
+      console.log('[QuizLoading] fetchQuizMeta: returning null (DEMO or no code)');
+      return null;
+    }
 
     try {
+      console.log('[QuizLoading] fetchQuizMeta: making API call...');
       const res = await api.get(`/api/quiz/${quizCode}`);
-      if (!isRunActive(runId)) return null;
+      console.log('[QuizLoading] fetchQuizMeta: API response received');
+      console.log('[QuizLoading] Checking isRunActive:', runId, '==', activeRunRef.current, '?', runId === activeRunRef.current);
+      if (!isRunActive(runId)) {
+        console.log('[QuizLoading] fetchQuizMeta: run not active after API call, aborting');
+        return null;
+      }
 
       setTimeLimit(Number(res.data.time_limit_mins) || 0);
 
@@ -564,7 +576,10 @@ export default function QuizLoading() {
         : toArray(res.data.question_types);
       const chapterTitle = res.data.chapter || res.data.topic;
 
-      if (!isRunActive(runId)) return null;
+      if (!isRunActive(runId)) {
+        console.log('[QuizLoading] fetchQuizMeta: run not active after setting time limit, aborting');
+        return null;
+      }
       setCtxChapter(chapterTitle);
       setCtxSubtopics(parsedSubtopics);
 
@@ -580,13 +595,14 @@ export default function QuizLoading() {
         });
       }
 
+      console.log('[QuizLoading] fetchQuizMeta: returning meta');
       return {
         ...res.data,
         question_types: parsedTypes,
         subtopic: parsedSubtopics,
       };
     } catch (err) {
-      console.error('Failed to fetch quiz meta:', err);
+      console.error('[QuizLoading] fetchQuizMeta error:', err);
       return null;
     }
   };
@@ -615,16 +631,23 @@ export default function QuizLoading() {
   };
 
   const generate = async () => {
+    console.log('[QuizLoading] ========== generate START ==========');
     const runId = activeRunRef.current + 1;
     activeRunRef.current = runId;
     clearAsyncWork();
 
+    console.log('[QuizLoading] Fetching quiz meta...');
     const meta = await fetchQuizMeta(runId);
-    if (!isRunActive(runId)) return;
+    console.log('[QuizLoading] Quiz meta received:', meta ? 'yes' : 'no');
+    if (!isRunActive(runId)) {
+      console.log('[QuizLoading] Run not active, aborting');
+      return;
+    }
 
     setError('');
     setRetrying(false);
     setProgress(5);
+    console.log('[QuizLoading] Progress set to 5%');
 
     progressIntervalRef.current = setInterval(() => {
       if (!isRunActive(runId)) return;
@@ -748,7 +771,11 @@ Keep content aligned to chapter "${chapterTitle}" and subtopics: ${safeSubtopics
 Randomize values so each learner gets unique questions.`;
 
     try {
+      console.log('[QuizLoading] Calling generateCompletion...');
+      console.log('[QuizLoading] Prompt length:', prompt.length);
+      console.log('[QuizLoading] Prompt preview:', prompt.substring(0, 300) + '...');
       const raw = await generateCompletion(prompt);
+      console.log('[QuizLoading] generateCompletion returned, length:', raw?.length);
       if (!isRunActive(runId)) return;
       clearAsyncWork();
       setProgress(100);
@@ -804,8 +831,10 @@ Randomize values so each learner gets unique questions.`;
         setError('No questions were generated. Try a different topic.');
       } else if (err.message.includes('JSON') || err.message.includes('parse') || err instanceof SyntaxError) {
         setError('Could not read Regis response. Please try again.');
+      } else if (err.message.includes('Ollama') || err.message.includes('ollama')) {
+        setError(err.message);
       } else {
-        setError(`${err.message}${!String(err.message).includes('settings') ? '. Check your Regis settings.' : ''}`);
+        setError(err.message);
       }
 
       api.post('/api/admin/system/events', {
@@ -821,13 +850,25 @@ Randomize values so each learner gets unique questions.`;
     }
   };
 
+  const hasStartedRef = useRef(false);
+
   useEffect(() => {
-    generate();
+    console.log('[QuizLoading] useEffect triggered');
+    console.log('[QuizLoading] quizCode:', quizCode);
+    console.log('[QuizLoading] attemptId:', attemptId);
+    console.log('[QuizLoading] student:', student);
+    console.log('[QuizLoading] generateCompletion:', generateCompletion ? 'available' : 'NOT AVAILABLE');
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true;
+      console.log('[QuizLoading] Calling generate() for first time');
+      generate();
+    }
+    // Don't cleanup on re-render, only on unmount
     return () => {
-      activeRunRef.current += 1;
-      clearAsyncWork();
+      console.log('[QuizLoading] Unmount cleanup');
+      // Only cleanup on actual unmount, not re-renders
     };
-  }, []);
+  }, []); // Empty dependency array = runs once on mount
 
   return (
     <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-10 animate-fadeUp">
