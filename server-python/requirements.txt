@@ -6,3 +6,9 @@ python-engineio==4.8.0
 eventlet==0.34.2
 apscheduler==3.10.4
 python-dotenv==1.0.0
+
+# Google Classroom Integration
+google-auth==2.27.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.118.0
