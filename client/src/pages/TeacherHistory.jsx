@@ -338,7 +338,7 @@ export default function TeacherHistory() {
               🔄 Refresh
             </button>
             <a
-              href={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/${selectedQuiz.code}/export`}
+              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/dashboard/${selectedQuiz.code}/export`}
               className="px-4 py-2 rounded-xl border border-border bg-card font-syne font-700 text-sm text-ink hover:border-accent2"
             >
               📥 Export CSV

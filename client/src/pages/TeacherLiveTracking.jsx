@@ -5,6 +5,8 @@ import StudentLiveCard from '../components/StudentLiveCard';
 import { useSocket } from '../hooks/useSocket';
 import api from '../hooks/useApi';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 function formatTime(seconds) {
   if (!seconds || seconds <= 0) return '--:--';
   const mins = Math.floor(seconds / 60);
@@ -28,7 +30,7 @@ export default function TeacherLiveTracking() {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   
   const { socket, emit, on, getStatus, isConnected } = useSocket(code);
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Fetch initial live data
   const fetchLiveData = useCallback(async () => {

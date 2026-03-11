@@ -22,21 +22,28 @@
 ## Setup
 
 ### Prerequisites
-- Node.js 18+
+- Python 3.8+
+- Node.js 18+ (for frontend only)
 - (Optional) OpenRouter API key or local Ollama instance
 
 ### Install & Run
 
 ```bash
-# Install all dependencies
-npm run install:all
+# Install Python dependencies
+pip install -r server-python/requirements.txt
 
-# Start both servers concurrently
-npm run dev
+# Install frontend dependencies
+npm install --prefix client
+
+# Start the Python backend server
+python server-python/server.py
+
+# In another terminal, start the frontend
+npm run dev --prefix client
 ```
 
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:4000
+- **Backend API**: http://localhost:5000
 
 ### AI Configuration
 
@@ -62,14 +69,15 @@ On the Student Join screen, click **"Try demo quiz"** to test without a real AI 
 
 ```
 mathmind/
-├── server/              # Node.js + Express + SQLite
-│   ├── server.js
-│   ├── db.js
-│   └── routes/
-│       ├── quiz.js
-│       ├── attempt.js
-│       ├── violations.js
-│       └── dashboard.js
+├── server-python/       # Python + Flask + SQLite
+│   ├── server.py
+│   ├── db.py
+│   ├── routes/
+│   │   ├── quiz.py
+│   │   ├── attempt.py
+│   │   ├── violations.py
+│   │   └── dashboard.py
+│   └── services/
 └── client/              # React + Vite + Tailwind
     └── src/
         ├── context/     # AIContext, QuizContext
@@ -82,7 +90,7 @@ mathmind/
 ## School Deployment
 
 For classroom use on a local network:
-1. Run the Express server on a dedicated machine
-2. Set `VITE_API_URL=http://<server-ip>:4000` in `client/.env`
+1. Run the Python server on a dedicated machine
+2. Set `VITE_API_URL=http://<server-ip>:5000` in `client/.env`
 3. Rebuild the frontend: `npm run build --prefix client`
 4. Serve `client/dist/` with any static server

@@ -34,7 +34,7 @@ export default function RegisSettingsModal({ onClose }) {
                         'X-Title': 'MathMind Test',
                     },
                     body: JSON.stringify({
-                        model: localModel || 'openai/gpt-4o-mini',
+                        model: localModel || 'qwen/qwen-2.5-7b-instruct',
                         messages: [{ role: 'user', content: prompt }],
                     }),
                 });
@@ -112,10 +112,10 @@ export default function RegisSettingsModal({ onClose }) {
                         <label className="block font-syne font-600 text-[10px] text-muted uppercase tracking-widest mb-2">Quick Select Model</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                             {[
-                                { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', tag: 'Fast & Smart' },
-                                { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', tag: 'Cost Effective' },
-                                { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', tag: 'Ultra Smart' },
-                                { id: 'google/gemini-pro-1.5', name: 'Gemini 1.5 Pro', tag: 'Deep Analysis' }
+                                { id: 'qwen/qwen-2.5-7b-instruct', name: 'Qwen 2.5 7B', tag: 'Free & Math' },
+                                { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B', tag: 'Free & Fast' },
+                                { id: 'meta-llama/llama-3-8b-instruct', name: 'Llama 3 8B', tag: 'Free & Smart' },
+                                { id: 'microsoft/phi-3-mini-instruct', name: 'Phi-3 Mini', tag: 'Free & Efficient' }
                             ].map(m => (
                                 <button
                                     key={m.id}
@@ -150,7 +150,7 @@ export default function RegisSettingsModal({ onClose }) {
 
                         <label className="block font-syne font-600 text-[10px] text-muted uppercase tracking-widest mb-2">Installed Models</label>
                         <div className="grid grid-cols-2 gap-2 mb-4">
-                            {['gpt-oss:latest', 'qwen3.5:latest', 'glm-4.7-flash:latest'].map(m => (
+                            {['qwen3.5', 'gpt-oss', 'llama3.1:8b', 'glm-4.7-flash'].map(m => (
                                 <button
                                     key={m}
                                     onClick={() => setLocalModel(m)}

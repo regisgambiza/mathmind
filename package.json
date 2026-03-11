@@ -2,11 +2,8 @@
   "name": "mathmind",
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix client\" \"nodemon server/server.js\"",
-    "install:all": "npm install && npm install --prefix client && npm install --prefix server"
+    "dev": "cd client && npm run dev",
+    "install:all": "npm install && npm install --prefix client"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.0",
-    "nodemon": "^3.0.0"
-  }
+  "devDependencies": {}
 }

@@ -34,6 +34,37 @@ const ACTIVITY_TYPES = [
   },
 ];
 
+const ADAPTIVE_LEVELS = [
+  {
+    id: 'none',
+    label: 'Fixed',
+    description: 'Questions stay as generated, no adaptation',
+    icon: '🔒',
+    color: 'bg-gray-500',
+  },
+  {
+    id: 'light',
+    label: 'Encouragement',
+    description: 'Shows messages only, difficulty never changes',
+    icon: '💬',
+    color: 'bg-blue-400',
+  },
+  {
+    id: 'medium',
+    label: 'Balanced',
+    description: 'Adjusts after 3+ consecutive same performance',
+    icon: '⚖️',
+    color: 'bg-yellow-500',
+  },
+  {
+    id: 'max',
+    label: 'Full Adaptive',
+    description: 'Adjusts after 2 wrong or 3 correct (recommended)',
+    icon: '🧠',
+    color: 'bg-purple-500',
+  },
+];
+
 function genCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
@@ -49,6 +80,7 @@ export default function TeacherSetup() {
   const [freeText, setFreeText] = useState('');
   const [topicMode, setTopicMode] = useState('curriculum'); // 'curriculum' or 'custom'
   const [difficulty, setDifficulty] = useState('core'); // 'foundation', 'core', 'advanced'
+  const [adaptiveLevel, setAdaptiveLevel] = useState('max'); // 'none', 'light', 'medium', 'max'
   const [count, setCount] = useState(5);
   const [types, setTypes] = useState(['multiple_choice', 'true_false', 'numeric_response']); // Default types
   const [typeWeights, setTypeWeights] = useState({
@@ -119,6 +151,7 @@ export default function TeacherSetup() {
         q_count: count,
         time_limit_mins: timeLimit,
         extra_instructions: extra || null,
+        adaptive_level: adaptiveLevel,
       });
 
       setQuizConfig({
@@ -130,6 +163,7 @@ export default function TeacherSetup() {
         timeLimit,
         difficulty,
         activity_type: activityType,
+        adaptive_level: adaptiveLevel,
       });
       setQuizCode(code);
       navigate('/teacher/dashboard');
@@ -281,6 +315,41 @@ export default function TeacherSetup() {
                 <p className="font-syne font-700 text-sm text-ink">{level.label}</p>
               </div>
               <p className="font-dm text-xs text-muted">{level.description}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Adaptive Engine Level Selector */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <label className="font-syne font-600 text-sm text-ink block">🧠 Adaptive Engine</label>
+            <p className="font-dm text-xs text-muted mt-0.5">How should difficulty adjust during the quiz?</p>
+          </div>
+          <span className={`px-2 py-1 rounded-md text-xs font-syne font-700 text-white ${ADAPTIVE_LEVELS.find(l => l.id === adaptiveLevel)?.color || 'bg-purple-500'}`}>
+            {ADAPTIVE_LEVELS.find(l => l.id === adaptiveLevel)?.label}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {ADAPTIVE_LEVELS.map((level) => (
+            <button
+              key={level.id}
+              onClick={() => setAdaptiveLevel(level.id)}
+              className={`p-4 rounded-xl border-2 text-left transition-all relative overflow-hidden ${
+                adaptiveLevel === level.id
+                  ? `border-${level.color.replace('bg-', '')} bg-${level.color.replace('bg-', '')}/10 shadow-lg`
+                  : 'border-border bg-card hover:border-border/80'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">{level.icon}</span>
+                <p className="font-syne font-700 text-sm text-ink">{level.label}</p>
+              </div>
+              <p className="font-dm text-xs text-muted leading-tight">{level.description}</p>
+              {adaptiveLevel === level.id && (
+                <div className={`absolute top-2 right-2 w-3 h-3 rounded-full ${level.color}`} />
+              )}
             </button>
           ))}
         </div>

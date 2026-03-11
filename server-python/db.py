@@ -26,6 +26,7 @@ SCHEMA = '''
     extra_instructions TEXT,
     class_name  TEXT,
     section_name TEXT,
+    adaptive_level TEXT DEFAULT 'max',
     created_at  TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS attempts (

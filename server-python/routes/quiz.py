@@ -39,8 +39,8 @@ def create_quiz():
             INSERT INTO quizzes (
                 code, topic, chapter, subtopic, activity_type, grade,
                 difficulty, question_types, type_weights, q_count, time_limit_mins, release_at, close_at,
-                extra_instructions
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                extra_instructions, adaptive_level
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             code,
             topic,
@@ -55,7 +55,8 @@ def create_quiz():
             data.get('time_limit_mins', 0),
             data.get('release_at'),
             data.get('close_at'),
-            data.get('extra_instructions')
+            data.get('extra_instructions'),
+            data.get('adaptive_level', 'max')
         ))
         conn.commit()
         return jsonify({'success': True, 'code': code})

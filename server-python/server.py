@@ -239,8 +239,8 @@ app.register_blueprint(practice.router, url_prefix='/api/practice')
 
 
 if __name__ == '__main__':
-    # Use PORT environment variable or default to 4000 (same as Node.js)
+    # Use PORT environment variable or default to 5000 for Python server
     # Use PYTHON_PORT to run on a different port if needed
-    port = int(os.environ.get('PYTHON_PORT', os.environ.get('PORT', 4000)))
+    port = int(os.environ.get('PYTHON_PORT', os.environ.get('PORT', 5000)))
     print(f'MathMind Python server running on port {port}')
     socketio.run(app, host='0.0.0.0', port=port, debug=False)

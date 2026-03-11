@@ -5,7 +5,7 @@ import { useQuiz } from '../context/QuizContext';
 import StudentCard from '../components/StudentCard';
 import api from '../hooks/useApi';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const normalizeActivityType = (value) => {
   const raw = String(value || '').trim().toLowerCase();
@@ -327,7 +327,7 @@ export default function TeacherDashboard() {
       {/* Export Button */}
       {students.length > 0 && (
         <a
-          href={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/dashboard/${quizCode}/export`}
+          href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/dashboard/${quizCode}/export`}
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-border bg-card font-syne font-600 text-sm text-ink hover:border-accent2 transition-colors"
         >
           <span>📥</span> Download CSV Report

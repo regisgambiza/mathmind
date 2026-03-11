@@ -76,7 +76,7 @@ export default function QuizPage() {
 
   // Setup socket connection for live tracking
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const newSocket = io(apiBase, {
       transports: ['websocket', 'polling'],
     });

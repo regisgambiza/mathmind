@@ -188,7 +188,8 @@ def build_admin_overview(conn, uptime_seconds=None):
         ) t ON t.student_id = ape.student_id AND t.max_created = ape.created_at
     ''').fetchall()
 
-    trend_map = {r['student_id']: r for r in latest_trend_rows}
+    # Convert sqlite3.Row to dict so .get() works downstream
+    trend_map = {r['student_id']: dict(r) for r in latest_trend_rows}
 
     # At-risk alerts
     at_risk_alerts = []
