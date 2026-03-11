@@ -19,9 +19,18 @@ function loadConfig() {
 
 export function RegisProvider({ children }) {
     const saved = loadConfig();
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY || '';
+
+    // If we have an env key and it doesn't match the saved key, update the saved key
+    if (envKey && saved.apiKey !== envKey) {
+        saved.apiKey = envKey;
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...saved, apiKey: envKey }));
+        } catch (e) { }
+    }
 
     // Hardcoded to OpenRouter - no provider toggle
-    const [apiKey, setApiKeyState] = useState(saved.apiKey || '');
+    const [apiKey, setApiKeyState] = useState(envKey || saved.apiKey || '');
 
     const save = (updates) => {
         const current = loadConfig();

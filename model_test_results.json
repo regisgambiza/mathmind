@@ -1,52 +1,65 @@
 [
   {
-    "model": "google/gemma-2-9b-it:free",
-    "status": "\u274c 404",
-    "error": "No endpoints found for google/gemma-2-9b-it:free."
+    "id": "meta-llama/llama-4-scout:free",
+    "label": "Meta Llama 4 Scout",
+    "notes": "Meta's latest scout model, multimodal, very capable",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "meta-llama/llama-3-8b-instruct:free",
-    "status": "\u274c 404",
-    "error": "No endpoints found for meta-llama/llama-3-8b-instr"
+    "id": "meta-llama/llama-3.3-70b-instruct:free",
+    "label": "Meta Llama 3.3 70B",
+    "notes": "Excellent general-purpose model, GPT-4o-mini tier",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "microsoft/phi-3-mini-128k-instruct:free",
-    "status": "\u274c 404",
-    "error": "No endpoints found for microsoft/phi-3-mini-128k-i"
+    "id": "google/gemini-2.0-flash-exp:free",
+    "label": "Google Gemini 2.0 Flash Exp",
+    "notes": "Google's fast Flash model, 1M context window",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "qwen/qwen-2.5-7b-instruct:free",
-    "status": "\u274c 404",
-    "error": "No endpoints found for qwen/qwen-2.5-7b-instruct:f"
+    "id": "deepseek/deepseek-chat-v3-0324:free",
+    "label": "DeepSeek Chat V3",
+    "notes": "Strong at coding & reasoning, GPT-4o-mini competitor",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "mistralai/mistral-7b-instruct:free",
-    "status": "\u274c 404",
-    "error": "No endpoints found for mistralai/mistral-7b-instru"
+    "id": "qwen/qwq-32b:free",
+    "label": "Qwen QwQ 32B",
+    "notes": "Alibaba reasoning model, great for math & logic",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "openai/gpt-oss-120b:free",
-    "status": "\u274c 404",
-    "error": "No endpoints available matching your guardrail res"
+    "id": "google/gemma-3-27b-it:free",
+    "label": "Google Gemma 3 27B",
+    "notes": "Open-weights model from Google, multimodal",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   },
   {
-    "model": "qwen/qwen3-4b:free",
-    "status": "\u274c 429",
-    "error": "Provider returned error"
-  },
-  {
-    "model": "google/gemma-3-27b-it:free",
-    "status": "\u274c 404",
-    "error": "No endpoints available matching your guardrail res"
-  },
-  {
-    "model": "meta-llama/llama-3.3-70b-instruct:free",
-    "status": "\u274c 429",
-    "error": "Provider returned error"
-  },
-  {
-    "model": "openrouter/free",
-    "status": "\u274c ERROR",
-    "error": "'NoneType' object is not subscriptable"
+    "id": "mistralai/mistral-7b-instruct:free",
+    "label": "Mistral 7B Instruct",
+    "notes": "Lightweight, fast, great for simple tasks",
+    "status": "\u274c FAILED",
+    "response": null,
+    "latency_s": null,
+    "error": "Connection error."
   }
 ]

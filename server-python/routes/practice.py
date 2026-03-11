@@ -137,7 +137,7 @@ def start_practice():
             plan['difficulty_distribution_count'] = allocate_distribution(count, distribution_pct)
 
         # Create practice session record
-        practice_code = f"PRACTICE-{datetime.utcnow().strftime('%Y%m%d%H%M%S').upper()}"
+        practice_code = f"PRACTICE-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')[:17].upper()}"
 
         # Insert a quiz record for tracking
         conn.execute('''

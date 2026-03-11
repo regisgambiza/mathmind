@@ -742,8 +742,8 @@ For open_ended:
 
 Keep difficulty appropriate for ${effectiveConfig.grade}.
 ${activityType === 'topic_quiz'
-  ? 'Ensure full-topic coverage with a stronger core/advanced mix and summative rigor.'
-  : 'Use lesson-level scaffolding with approachable progression and quick formative checks.'}
+        ? 'Ensure full-topic coverage with a stronger core/advanced mix and summative rigor.'
+        : 'Use lesson-level scaffolding with approachable progression and quick formative checks.'}
 Keep content aligned to chapter "${chapterTitle}" and subtopics: ${safeSubtopics.length ? safeSubtopics.join(', ') : 'not specified'}.
 Randomize values so each learner gets unique questions.`;
 
@@ -754,6 +754,11 @@ Randomize values so each learner gets unique questions.`;
       setProgress(100);
 
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      if (!cleaned) {
+        throw new Error('Received empty response from AI model. Please try again or wait a moment.');
+      }
+
       const firstBracket = cleaned.indexOf('[');
       const lastBracket = cleaned.lastIndexOf(']');
 
@@ -791,7 +796,7 @@ Randomize values so each learner gets unique questions.`;
       if (!isRunActive(runId)) return;
       console.error('[QuizLoading] Generation Error:', err);
       clearAsyncWork();
-      
+
       // Show specific error for credit issues
       if (err.message.includes('credits') || err.message.includes('tokens')) {
         setError('Insufficient OpenRouter credits. Please add credits at https://openrouter.ai/settings/credits');
