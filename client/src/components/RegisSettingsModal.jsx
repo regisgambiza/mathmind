@@ -86,22 +86,21 @@ export default function RegisSettingsModal({ onClose }) {
 
                 {/* Model Chain Display */}
                 <label className="block font-syne font-600 text-[10px] text-muted uppercase tracking-widest mb-2">
-                    Model Fallback Chain
+                    AI Model
                 </label>
-                <div className="mb-5 space-y-1">
-                    {MODEL_FALLBACK_CHAIN.map((model, idx) => (
-                        <div key={model} className="flex items-center gap-2 text-xs font-dm text-muted">
-                            <span className={`font-syne font-700 text-[10px] px-1.5 py-0.5 rounded ${
-                                idx === MODEL_FALLBACK_CHAIN.length - 1 
-                                    ? 'bg-accent2/20 text-accent2' 
-                                    : 'bg-accent/20 text-accent'
-                            }`}>{idx + 1}.</span>
-                            <span className="text-ink">{model}</span>
-                            {idx === MODEL_FALLBACK_CHAIN.length - 1 && (
-                                <span className="text-[9px] text-muted ml-auto">(any free model)</span>
-                            )}
+                <div className="mb-5 p-4 rounded-xl bg-accent/10 border border-accent/20">
+                    <div className="flex items-start gap-3">
+                        <span className="text-2xl">🤖</span>
+                        <div>
+                            <p className="font-syne font-700 text-sm text-ink mb-1">
+                                OpenRouter Free (Auto-Select)
+                            </p>
+                            <p className="font-dm text-xs text-muted leading-relaxed">
+                                Automatically routes to the best available free model at request time. 
+                                No need to select specific models — OpenRouter handles it.
+                            </p>
                         </div>
-                    ))}
+                    </div>
                 </div>
 
                 {testStatus === 'fail' && errorMsg && (

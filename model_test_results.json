@@ -1,0 +1,52 @@
+[
+  {
+    "model": "google/gemma-2-9b-it:free",
+    "status": "\u274c 404",
+    "error": "No endpoints found for google/gemma-2-9b-it:free."
+  },
+  {
+    "model": "meta-llama/llama-3-8b-instruct:free",
+    "status": "\u274c 404",
+    "error": "No endpoints found for meta-llama/llama-3-8b-instr"
+  },
+  {
+    "model": "microsoft/phi-3-mini-128k-instruct:free",
+    "status": "\u274c 404",
+    "error": "No endpoints found for microsoft/phi-3-mini-128k-i"
+  },
+  {
+    "model": "qwen/qwen-2.5-7b-instruct:free",
+    "status": "\u274c 404",
+    "error": "No endpoints found for qwen/qwen-2.5-7b-instruct:f"
+  },
+  {
+    "model": "mistralai/mistral-7b-instruct:free",
+    "status": "\u274c 404",
+    "error": "No endpoints found for mistralai/mistral-7b-instru"
+  },
+  {
+    "model": "openai/gpt-oss-120b:free",
+    "status": "\u274c 404",
+    "error": "No endpoints available matching your guardrail res"
+  },
+  {
+    "model": "qwen/qwen3-4b:free",
+    "status": "\u274c 429",
+    "error": "Provider returned error"
+  },
+  {
+    "model": "google/gemma-3-27b-it:free",
+    "status": "\u274c 404",
+    "error": "No endpoints available matching your guardrail res"
+  },
+  {
+    "model": "meta-llama/llama-3.3-70b-instruct:free",
+    "status": "\u274c 429",
+    "error": "Provider returned error"
+  },
+  {
+    "model": "openrouter/free",
+    "status": "\u274c ERROR",
+    "error": "'NoneType' object is not subscriptable"
+  }
+]

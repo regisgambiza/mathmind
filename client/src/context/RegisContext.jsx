@@ -6,16 +6,7 @@ const STORAGE_KEY = 'mathmind_regis_config';
 
 // Hardcoded OpenRouter model fallback chain - tries each in order until one works
 const MODEL_FALLBACK_CHAIN = [
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3-8b-instruct:free',
-    'microsoft/phi-3-mini-128k-instruct:free',
-    'qwen/qwen-2.5-7b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
-    'openai/gpt-oss-120b:free',
-    'qwen/qwen3-4b:free',
-    'google/gemma-3-27b-it:free',
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'openrouter/free', // Ultimate fallback - any free model
+    'openrouter/free', // Auto-routes to any available free model
 ];
 
 function loadConfig() {
