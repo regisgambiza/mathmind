@@ -367,7 +367,24 @@ def init_db():
                 if 'duplicate column' not in str(e).lower():
                     raise
     db.commit()
+    
+    # Ensure all required columns exist (for databases created before these columns were added)
+    _ensure_column(db, 'quizzes', 'adaptive_level', "TEXT DEFAULT 'max'")
+    db.commit()
+    
     return db
+
+
+def _ensure_column(db, table, column, default_type_and_value):
+    """Ensure a column exists, adding it if necessary."""
+    columns = [row[1] for row in db.execute(f'PRAGMA table_info({table})').fetchall()]
+    if column not in columns:
+        try:
+            db.execute(f'ALTER TABLE {table} ADD COLUMN {column} {default_type_and_value}')
+            print(f'[DB] Added column {table}.{column}')
+        except sqlite3.OperationalError as e:
+            if 'duplicate column' not in str(e).lower():
+                raise
 
 
 def close_db():

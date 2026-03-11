@@ -71,17 +71,31 @@ export default function PracticeQuizPage() {
   const [loadingNext, setLoadingNext] = useState(false);
   const qStartRef = useRef(Date.now());
   const nextClickRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (generatedQuestions) return;
+    console.log('[PracticeQuizPage] useEffect triggered');
+    console.log('[PracticeQuizPage] generatedQuestions:', generatedQuestions);
+    console.log('[PracticeQuizPage] hasStartedRef.current:', hasStartedRef.current);
+    if (generatedQuestions || hasStartedRef.current) {
+      console.log('[PracticeQuizPage] Skipping generation - already have questions or started');
+      return;
+    }
+    hasStartedRef.current = true;
+    console.log('[PracticeQuizPage] Calling generatePracticeQuestions');
     generatePracticeQuestions();
   }, []);
 
   const generatePracticeQuestions = async () => {
+    console.log('[PracticeQuizPage] ========== generatePracticeQuestions START ==========');
     setGenerating(true);
     try {
+      console.log('[PracticeQuizPage] Reading student from localStorage...');
       const student = JSON.parse(localStorage.getItem('mathmind_student') || '{}');
+      console.log('[PracticeQuizPage] Student:', student);
+      
       if (!student?.id) {
+        console.error('[PracticeQuizPage] ❌ No student ID found, redirecting to join');
         navigate('/student/join');
         return;
       }
@@ -96,20 +110,39 @@ export default function PracticeQuizPage() {
         count: practiceQuizCode ? 10 : 5,
         difficulty_focus: 'adaptive',
       };
+      console.log('[PracticeQuizPage] Practice data:', practiceData);
+      console.log('[PracticeQuizPage] POST /api/practice/start');
 
       const { data } = await api.post('/api/practice/start', practiceData);
+      console.log('[PracticeQuizPage] Practice session response:', data);
       setAttemptId(data.practice_session.attempt_id);
 
       // Generate questions using AI
+      console.log('[PracticeQuizPage] Building question generation prompt...');
       const prompt = buildQuestionGenerationPrompt(data.practice_session);
+      console.log('[PracticeQuizPage] Prompt length:', prompt.length);
+      console.log('[PracticeQuizPage] Prompt preview:', prompt.substring(0, 300) + '...');
+      
+      console.log('[PracticeQuizPage] Calling generateCompletion (AI)...');
       const aiResponse = await generateCompletion(prompt);
+      console.log('[PracticeQuizPage] AI response length:', aiResponse?.length);
+      console.log('[PracticeQuizPage] AI response preview:', aiResponse?.substring(0, 300) + '...');
 
       // Parse AI response
+      console.log('[PracticeQuizPage] Parsing AI response...');
       const parsedQuestions = parseAIQuestions(aiResponse);
+      console.log('[PracticeQuizPage] Parsed questions count:', parsedQuestions.length);
+      console.log('[PracticeQuizPage] First question preview:', parsedQuestions[0]);
+      
       setQuestions(parsedQuestions);
       setLoading(false);
+      console.log('[PracticeQuizPage] ========== generatePracticeQuestions SUCCESS ==========');
     } catch (err) {
-      console.error('Failed to generate practice questions:', err);
+      console.error('[PracticeQuizPage] ========== generatePracticeQuestions ERROR ==========');
+      console.error('[PracticeQuizPage] Error type:', err.constructor.name);
+      console.error('[PracticeQuizPage] Error message:', err.message);
+      console.error('[PracticeQuizPage] Error stack:', err.stack);
+      
       // Show error in UI - no fallback, AI required
       let errorMsg = 'Failed to generate questions. ';
       if (err.message.includes('credits') || err.message.includes('tokens')) {
@@ -119,8 +152,10 @@ export default function PracticeQuizPage() {
       } else {
         errorMsg += err.message;
       }
+      console.error('[PracticeQuizPage] Display error message:', errorMsg);
       setError(errorMsg);
       setLoading(false);
+      console.error('[PracticeQuizPage] ========== generatePracticeQuestions ERROR END ==========');
     } finally {
       setGenerating(false);
     }
@@ -213,23 +248,47 @@ Example format:
   };
 
   const parseAIQuestions = (aiResponse) => {
+    console.log('[PracticeQuizPage] ========== parseAIQuestions START ==========');
+    console.log('[PracticeQuizPage] Raw AI response length:', aiResponse?.length);
+    console.log('[PracticeQuizPage] Raw AI response preview:', aiResponse?.substring(0, 500) + '...');
+    
     try {
       // FIXED: Clean markdown code blocks from AI response
       let cleanedResponse = aiResponse.trim();
+      console.log('[PracticeQuizPage] Cleaned response length:', cleanedResponse.length);
 
       // Remove markdown code blocks (```json ... ```)
+      const beforeMarkdown = cleanedResponse;
       cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      if (beforeMarkdown !== cleanedResponse) {
+        console.log('[PracticeQuizPage] Removed markdown code blocks');
+      }
 
       // Try to extract JSON array from response
       const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        console.log('[PracticeQuizPage] Found JSON array match, length:', jsonMatch[0].length);
+        console.log('[PracticeQuizPage] JSON preview:', jsonMatch[0].substring(0, 300) + '...');
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('[PracticeQuizPage] Parsed', parsed.length, 'questions');
+        console.log('[PracticeQuizPage] ========== parseAIQuestions SUCCESS ==========');
+        return parsed;
       }
-      return JSON.parse(cleanedResponse);
+      
+      console.log('[PracticeQuizPage] No JSON array found, trying direct parse...');
+      const parsed = JSON.parse(cleanedResponse);
+      console.log('[PracticeQuizPage] ========== parseAIQuestions SUCCESS (direct parse) ==========');
+      return parsed;
     } catch (err) {
-      console.error('Failed to parse AI questions:', err);
-      console.error('Raw AI response (first 200 chars):', aiResponse.substring(0, 200));
+      console.error('[PracticeQuizPage] ========== parseAIQuestions ERROR ==========');
+      console.error('[PracticeQuizPage] Parse error:', err.message);
+      console.error('[PracticeQuizPage] Error stack:', err.stack);
+      console.error('[PracticeQuizPage] Raw AI response (first 500 chars):', aiResponse?.substring(0, 500));
+      console.error('[PracticeQuizPage] Raw AI response (last 500 chars):', aiResponse?.substring(aiResponse?.length - 500));
+      console.error('[PracticeQuizPage] ========== parseAIQuestions ERROR END ==========');
+      
       // Fallback to demo questions
+      console.warn('[PracticeQuizPage] ⚠️ Using fallback question due to parse error');
       return [
         {
           question: `Practice: ${practiceSkill || practiceTopic || 'Math Skill'}`,

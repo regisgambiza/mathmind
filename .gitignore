@@ -2,6 +2,8 @@ node_modules/
 client/node_modules/
 client/dist/
 .env
+client/.env
+**/.env
 *.local
 __pycache__/
 *.pyc

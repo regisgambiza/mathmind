@@ -1,18 +1,12 @@
 /**
  * AI-powered hint generation for quiz questions
+ * With extensive debug logging
  */
 
 import { useRegis } from '../context/RegisContext';
 
 /**
  * Generate a hint for a specific question
- * @param {string} questionText - The question text
- * @param {string} questionType - Type of question (multiple_choice, true_false, etc.)
- * @param {string} skillTag - The skill being tested
- * @param {string} difficulty - Difficulty level (foundation, core, advanced)
- * @param {string} studentAnswer - Optional: student's current answer (for follow-up hints)
- * @param {boolean} isWrong - Optional: whether the student's answer was wrong
- * @returns {Promise<string>} - The generated hint
  */
 export async function generateHint({
   questionText,
@@ -23,10 +17,18 @@ export async function generateHint({
   isWrong,
   generateCompletion,
 }) {
+  console.log('[generateHint] ========== START ==========');
+  console.log('[generateHint] questionType:', questionType);
+  console.log('[generateHint] skillTag:', skillTag);
+  console.log('[generateHint] difficulty:', difficulty);
+  console.log('[generateHint] isWrong:', isWrong);
+  console.log('[generateHint] studentAnswer:', studentAnswer);
+  console.log('[generateHint] questionText:', questionText?.substring(0, 100));
+
   let prompt = '';
 
   if (isWrong && studentAnswer) {
-    // Follow-up hint after wrong answer
+    console.log('[generateHint] Generating follow-up hint for wrong answer');
     prompt = `You are a helpful math tutor. A student got this question wrong.
 
 Question (${questionType}, ${difficulty}, skill: ${skillTag}):
@@ -42,7 +44,7 @@ Provide a SHORT, encouraging hint (2-3 sentences max) that:
 
 Do NOT reveal the correct answer. Keep it under 50 words.`;
   } else {
-    // Initial hint request
+    console.log('[generateHint] Generating initial hint');
     prompt = `You are a helpful math tutor. A student is asking for a hint on this question.
 
 Question (${questionType}, ${difficulty}, skill: ${skillTag}):
@@ -57,22 +59,25 @@ Provide a SHORT hint (2-3 sentences max) that:
 Do NOT give away the answer. Keep it under 50 words. Use simple, encouraging language.`;
   }
 
+  console.log('[generateHint] Prompt length:', prompt.length);
+  console.log('[generateHint] Calling generateCompletion...');
+
   try {
     const hint = await generateCompletion(prompt);
+    console.log('[generateHint] Hint received, length:', hint?.length);
+    console.log('[generateHint] Hint:', hint);
+    console.log('[generateHint] ========== END ==========');
     return hint.trim() || 'Try breaking down the question into smaller parts. What information do you know? What are you trying to find?';
   } catch (err) {
-    console.error('Hint generation failed:', err);
+    console.error('[generateHint] ========== ERROR ==========');
+    console.error('[generateHint] Error:', err.message);
+    console.error('[generateHint] ========== ERROR END ==========');
     return 'Think about what you know and what you need to find. Try working through it step by step.';
   }
 }
 
 /**
  * Generate step-by-step explanation after quiz completion
- * @param {object} question - The question object
- * @param {string} studentAnswer - The student's answer
- * @param {string} correctAnswer - The correct answer
- * @param {boolean} isCorrect - Whether the student was correct
- * @returns {Promise<string>} - The generated explanation
  */
 export async function generateExplanation({
   question,
@@ -81,6 +86,14 @@ export async function generateExplanation({
   isCorrect,
   generateCompletion,
 }) {
+  console.log('[generateExplanation] ========== START ==========');
+  console.log('[generateExplanation] question type:', question?.type);
+  console.log('[generateExplanation] skill:', question?.skill_tag);
+  console.log('[generateExplanation] difficulty:', question?.difficulty);
+  console.log('[generateExplanation] isCorrect:', isCorrect);
+  console.log('[generateExplanation] studentAnswer:', studentAnswer);
+  console.log('[generateExplanation] correctAnswer:', correctAnswer);
+
   const prompt = `You are a helpful math tutor explaining the solution to a student.
 
 Question (${question.type}, ${question.difficulty}, skill: ${question.skill_tag || 'General'}):
@@ -98,11 +111,19 @@ Provide a clear, step-by-step explanation that:
 
 Use simple, encouraging language. Format with clear steps using numbers or bullets. Keep it under 150 words.`;
 
+  console.log('[generateExplanation] Prompt length:', prompt.length);
+  console.log('[generateExplanation] Calling generateCompletion...');
+
   try {
     const explanation = await generateCompletion(prompt);
+    console.log('[generateExplanation] Explanation received, length:', explanation?.length);
+    console.log('[generateExplanation] Explanation:', explanation);
+    console.log('[generateExplanation] ========== END ==========');
     return explanation.trim() || question.explanation || 'Review the concept and try again.';
   } catch (err) {
-    console.error('Explanation generation failed:', err);
+    console.error('[generateExplanation] ========== ERROR ==========');
+    console.error('[generateExplanation] Error:', err.message);
+    console.error('[generateExplanation] ========== ERROR END ==========');
     return question.explanation || 'Review the steps and try again.';
   }
 }
@@ -117,23 +138,37 @@ export async function generateEncouragement({
   streak,
   generateCompletion,
 }) {
+  console.log('[generateEncouragement] ========== START ==========');
+  console.log('[generateEncouragement] score:', score);
+  console.log('[generateEncouragement] total:', total);
+  console.log('[generateEncouragement] improvement:', improvement);
+  console.log('[generateEncouragement] streak:', streak);
+
   const prompt = `You are an encouraging math tutor. A student just completed a quiz.
 
 Score: ${score}/${total} (${Math.round((score / total) * 100)}%)
 ${improvement !== undefined ? `Improvement from last time: ${improvement > 0 ? '+' : ''}${improvement}%` : ''}
 ${streak !== undefined ? `Current streak: ${streak} days` : ''}
 
-Write a SHORT, enthusiastic encouragement message (2-3 sentences). 
-${score / total >= 0.8 ? 'Celebrate their great performance.' : 
-  score / total >= 0.5 ? 'Acknowledge their effort and encourage continued practice.' : 
+Write a SHORT, enthusiastic encouragement message (2-3 sentences).
+${score / total >= 0.8 ? 'Celebrate their great performance.' :
+  score / total >= 0.5 ? 'Acknowledge their effort and encourage continued practice.' :
   'Be extra supportive and emphasize that practice leads to improvement.'}
 
 Keep it under 40 words. Use emojis sparingly (1-2 max).`;
 
+  console.log('[generateEncouragement] Prompt length:', prompt.length);
+  console.log('[generateEncouragement] Calling generateCompletion...');
+
   try {
     const message = await generateCompletion(prompt);
+    console.log('[generateEncouragement] Message received:', message);
+    console.log('[generateEncouragement] ========== END ==========');
     return message.trim();
-  } catch {
+  } catch (err) {
+    console.error('[generateEncouragement] ========== ERROR ==========');
+    console.error('[generateEncouragement] Error:', err.message);
+    console.error('[generateEncouragement] ========== ERROR END ==========');
     // Fallback messages based on score
     const fallbacks = [
       score / total >= 0.8 ? '🌟 Amazing work! You really understand this topic!' :
@@ -151,6 +186,7 @@ export function useHintGenerator() {
   const { generateCompletion } = useRegis();
 
   const getHint = async (question, studentAnswer = null, isWrong = false) => {
+    console.log('[useHintGenerator] getHint called');
     return generateHint({
       questionText: question.question,
       questionType: question.type,
@@ -163,6 +199,7 @@ export function useHintGenerator() {
   };
 
   const getExplanation = async (question, studentAnswer, correctAnswer, isCorrect) => {
+    console.log('[useHintGenerator] getExplanation called');
     return generateExplanation({
       question,
       studentAnswer,
@@ -173,6 +210,7 @@ export function useHintGenerator() {
   };
 
   const getEncouragement = async (score, total, improvement, streak) => {
+    console.log('[useHintGenerator] getEncouragement called');
     return generateEncouragement({
       score,
       total,
