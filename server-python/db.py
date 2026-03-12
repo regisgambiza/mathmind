@@ -27,6 +27,11 @@ SCHEMA = '''
     class_name  TEXT,
     section_name TEXT,
     adaptive_level TEXT DEFAULT 'max',
+    course_id   TEXT,
+    topic_id    TEXT,
+    coursework_id TEXT,
+    posted_to_classroom INTEGER DEFAULT 0,
+    created_by  TEXT,
     created_at  TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS attempts (
@@ -78,12 +83,15 @@ SCHEMA = '''
     FOREIGN KEY (attempt_id) REFERENCES attempts(id)
   );
   CREATE TABLE IF NOT EXISTS teachers (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    username  TEXT UNIQUE NOT NULL,
-    password  TEXT,
-    google_id TEXT,
-    email     TEXT,
-    name      TEXT
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    username               TEXT UNIQUE NOT NULL,
+    password               TEXT,
+    google_id              TEXT,
+    email                  TEXT,
+    name                   TEXT,
+    google_refresh_token   TEXT,
+    google_access_token    TEXT,
+    google_token_expires_at TEXT
   );
   CREATE TABLE IF NOT EXISTS students (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -280,6 +288,18 @@ SCHEMA = '''
     detail_json   TEXT,
     created_at    TEXT DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS grade_sync_queue (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id       TEXT NOT NULL,
+    coursework_id   TEXT NOT NULL,
+    student_email   TEXT NOT NULL,
+    percentage      REAL NOT NULL,
+    status          TEXT DEFAULT 'pending',
+    retry_count     INTEGER DEFAULT 0,
+    error_message   TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    synced_at       TEXT
+  );
 
   -- Schema migrations for backwards compatibility
   ALTER TABLE quizzes ADD COLUMN time_limit_mins INTEGER DEFAULT 0;
@@ -313,6 +333,14 @@ SCHEMA = '''
   ALTER TABLE teachers ADD COLUMN name TEXT;
   ALTER TABLE students ADD COLUMN google_id TEXT;
   ALTER TABLE students ADD COLUMN email TEXT;
+  ALTER TABLE quizzes ADD COLUMN course_id TEXT;
+  ALTER TABLE quizzes ADD COLUMN topic_id TEXT;
+  ALTER TABLE quizzes ADD COLUMN coursework_id TEXT;
+  ALTER TABLE quizzes ADD COLUMN posted_to_classroom INTEGER DEFAULT 0;
+  ALTER TABLE quizzes ADD COLUMN created_by TEXT;
+  ALTER TABLE teachers ADD COLUMN google_refresh_token TEXT;
+  ALTER TABLE teachers ADD COLUMN google_access_token TEXT;
+  ALTER TABLE teachers ADD COLUMN google_token_expires_at TEXT;
 
   -- Normalize activity types
   UPDATE quizzes SET activity_type = 'class_activity' WHERE activity_type IS NULL OR trim(activity_type) = '';

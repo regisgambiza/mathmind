@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuiz } from '../context/QuizContext';
 import { G7_CURRICULUM } from '../data/curriculum';
 import api from '../hooks/useApi';
+import ClassroomSelector from '../components/ClassroomSelector';
 
 const GRADES = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
 const DIFFICULTY_LEVELS = [
@@ -92,6 +93,27 @@ export default function TeacherSetup() {
   const [extra, setExtra] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Google Classroom integration
+  const [postToClassroom, setPostToClassroom] = useState(false);
+  const [classroomSelection, setClassroomSelection] = useState({ course_id: null, topic_id: null });
+  const [teacherId, setTeacherId] = useState(null);
+  const [googleConnected, setGoogleConnected] = useState(false);
+
+  // Get teacher ID from localStorage — if they logged in with Google, treat as connected
+  useEffect(() => {
+    const teacher = localStorage.getItem('mathmind_teacher');
+    if (teacher) {
+      try {
+        const teacherData = JSON.parse(teacher);
+        setTeacherId(teacherData.id);
+        // If they have a google_id they signed in with Google — Classroom scopes were requested at login
+        setGoogleConnected(!!teacherData.google_id);
+      } catch (e) {
+        console.error('Failed to parse teacher data');
+      }
+    }
+  }, []);
 
   const isG7 = grade === 'Grade 7';
   const selectedChapter = useMemo(() => G7_CURRICULUM.find((c) => c.ch === chapter), [chapter]);
@@ -138,7 +160,8 @@ export default function TeacherSetup() {
     const code = genCode();
 
     try {
-      await api.post('/api/quiz', {
+      // First create the quiz
+      const quizPayload = {
         code,
         topic,
         chapter: topicMode === 'curriculum' && isG7 ? chapter : null,
@@ -152,7 +175,37 @@ export default function TeacherSetup() {
         time_limit_mins: timeLimit,
         extra_instructions: extra || null,
         adaptive_level: adaptiveLevel,
-      });
+        created_by: teacherId,
+      };
+
+      // If posting to Classroom and enabled
+      if (postToClassroom && googleConnected && classroomSelection.course_id) {
+        // Create assignment first to get coursework_id
+        try {
+          const assignmentRes = await api.post(`/api/classroom/courses/${classroomSelection.course_id}/assignments`, {
+            teacher_id: teacherId,
+            title: topic,
+            description: `MathMind Quiz - ${grade}\n\nClick the link below to take the quiz.`,
+            quiz_code: code,
+            quiz_link: `${window.location.origin}/quiz/${code}`,
+            topic_id: classroomSelection.topic_id || null,
+            points: 100,
+          });
+
+          if (assignmentRes.data.coursework_id) {
+            quizPayload.course_id = classroomSelection.course_id;
+            quizPayload.topic_id = classroomSelection.topic_id;
+            quizPayload.coursework_id = assignmentRes.data.coursework_id;
+            quizPayload.posted_to_classroom = true;
+          }
+        } catch (classroomErr) {
+          console.error('Failed to create Classroom assignment:', classroomErr);
+          setError('Quiz created but failed to post to Classroom. You can share the code manually: ' + code);
+          // Continue without Classroom posting
+        }
+      }
+
+      await api.post('/api/quiz', quizPayload);
 
       setQuizConfig({
         topic,
@@ -457,6 +510,37 @@ export default function TeacherSetup() {
           rows={3}
           className="w-full p-3 rounded-xl border-2 border-border bg-card font-dm text-sm outline-none focus:border-accent2 resize-none"
         />
+      </section>
+
+      {/* Google Classroom Integration */}
+      <section className="p-4 rounded-xl border-2 border-border bg-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <label className="font-syne font-600 text-sm text-ink block">📚 Post to Google Classroom</label>
+            <p className="font-dm text-xs text-muted mt-0.5">Create assignment and sync grades automatically</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={postToClassroom}
+              onChange={(e) => setPostToClassroom(e.target.checked)}
+              disabled={!googleConnected}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent2 rounded-full peer peer-checked:bg-accent2 peer-disabled:opacity-50"></div>
+            <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5"></div>
+          </label>
+        </div>
+
+        {postToClassroom && googleConnected && (
+          <div className="space-y-4">
+            <ClassroomSelector
+              teacherId={teacherId}
+              onSelect={setClassroomSelection}
+              disabled={loading}
+            />
+          </div>
+        )}
       </section>
 
       {error && (

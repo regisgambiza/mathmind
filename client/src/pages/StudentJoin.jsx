@@ -41,6 +41,7 @@ export default function StudentJoin() {
         quiz_code: normalizedCode,
         student_id: student.id,
         student_name: student.name,
+        student_email: student.email,
       });
 
       setStudentName(student.name);
@@ -82,6 +83,10 @@ export default function StudentJoin() {
           setError('This quiz is closed. Ask your teacher for a new assignment window.');
         } else if (data.code === 'assignment_paused') {
           setError('This assignment is temporarily paused by the teacher.');
+        } else if (data.code === 'not_enrolled') {
+          setError('You are not enrolled in this course. Please contact your teacher.');
+        } else if (data.code === 'email_required') {
+          setError('Student email is required for this quiz.');
         } else {
           setError(data.error || 'This quiz is not currently available.');
         }

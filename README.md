@@ -11,6 +11,18 @@
 - 📊 **Live dashboard** — Teacher sees all students in real-time with scores
 - 📥 **CSV export** — Download full results per quiz
 - 🗃️ **SQLite backend** — Zero-config local database
+- 📚 **Google Classroom Integration** — Post assignments, sync grades automatically
+
+## Google Classroom Integration
+
+MathMind now integrates with Google Classroom for seamless assignment management:
+
+- **Post quizzes as assignments** - Create quizzes and automatically post to Classroom
+- **Student validation** - Only enrolled students can access class quizzes
+- **Automatic grade sync** - Scores are pushed to Classroom gradebook
+- **Course & topic selection** - Organize assignments by course and topic
+
+See [GOOGLE_CLASSROOM_SETUP.md](GOOGLE_CLASSROOM_SETUP.md) for setup instructions.
 
 ## Question Types
 

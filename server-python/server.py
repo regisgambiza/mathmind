@@ -287,7 +287,7 @@ def handle_options(path):
 
 # ============== Import and Register Routes ==============
 
-from routes import quiz, attempt, violations, dashboard, auth, student, admin, practice
+from routes import quiz, attempt, violations, dashboard, auth, student, admin, practice, classroom
 
 app.register_blueprint(quiz.router, url_prefix='/api/quiz')
 app.register_blueprint(attempt.router, url_prefix='/api/attempt')
@@ -297,6 +297,7 @@ app.register_blueprint(auth.router, url_prefix='/api/auth')
 app.register_blueprint(student.router, url_prefix='/api/student')
 app.register_blueprint(admin.router, url_prefix='/api/admin')
 app.register_blueprint(practice.router, url_prefix='/api/practice')
+app.register_blueprint(classroom.router, url_prefix='/api/classroom')
 
 http_logger.info("All routes registered")
 

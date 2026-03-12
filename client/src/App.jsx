@@ -15,6 +15,7 @@ import TeacherHome from './pages/TeacherHome';
 import TeacherAdmin from './pages/TeacherAdmin';
 import TeacherLiveTracking from './pages/TeacherLiveTracking';
 import TeacherLayout from './components/TeacherLayout';
+import TeacherConnectClassroom from './pages/TeacherConnectClassroom';
 import StudentJoin from './pages/StudentJoin';
 import StudentLogin from './pages/StudentLogin';
 import StudentDashboard from './pages/StudentDashboard';
@@ -42,6 +43,7 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/teacher/login" element={<TeacherLogin />} />
+                    <Route path="/teacher/connect-classroom" element={<ProtectedRoute><TeacherConnectClassroom /></ProtectedRoute>} />
 
                     <Route path="/teacher/dashboard-home" element={<ProtectedRoute><TeacherLayout><TeacherHome /></TeacherLayout></ProtectedRoute>} />
                     <Route path="/teacher/setup" element={<ProtectedRoute><TeacherLayout><TeacherSetup /></TeacherLayout></ProtectedRoute>} />

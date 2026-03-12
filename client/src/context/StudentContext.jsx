@@ -32,6 +32,7 @@ export function StudentProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       id: value.id,
       name: value.name,
+      email: value.email,
     }));
   };
 
@@ -64,7 +65,7 @@ export function StudentProvider({ children }) {
   const completeAuth = useCallback(async (data) => {
     const account = data?.student;
     if (!account) throw new Error('Invalid student response');
-    setStudent({ id: account.id, name: account.name });
+    setStudent({ id: account.id, name: account.name, email: account.email });
     persistStudent(account);
     await refreshProfile(account.id);
     return account;
@@ -114,7 +115,7 @@ export function StudentProvider({ children }) {
       }
 
       try {
-        if (!cancelled) setStudent({ id: saved.id, name: saved.name });
+        if (!cancelled) setStudent({ id: saved.id, name: saved.name, email: saved.email || null });
         await refreshProfile(saved.id);
       } catch {
         if (!cancelled) logout();

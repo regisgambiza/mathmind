@@ -33,7 +33,7 @@ def create_quiz():
     logger.info("Creating new quiz")
     data = request.get_json()
     logger.debug(f"Request data: {data}")
-    
+
     code = data.get('code')
     topic = data.get('topic')
     grade = data.get('grade')
@@ -51,8 +51,9 @@ def create_quiz():
             INSERT INTO quizzes (
                 code, topic, chapter, subtopic, activity_type, grade,
                 difficulty, question_types, type_weights, q_count, time_limit_mins, release_at, close_at,
-                extra_instructions, adaptive_level
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                extra_instructions, adaptive_level, course_id, topic_id, coursework_id,
+                posted_to_classroom, created_by
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             code,
             topic,
@@ -68,7 +69,12 @@ def create_quiz():
             data.get('release_at'),
             data.get('close_at'),
             data.get('extra_instructions'),
-            data.get('adaptive_level', 'max')
+            data.get('adaptive_level', 'max'),
+            data.get('course_id'),
+            data.get('topic_id'),
+            data.get('coursework_id'),
+            1 if data.get('posted_to_classroom') else 0,
+            data.get('created_by')
         ))
         conn.commit()
         logger.info(f"✅ Quiz created successfully: {code}")
@@ -182,7 +188,11 @@ def update_quiz(code):
             time_limit_mins = COALESCE(?, time_limit_mins),
             release_at = COALESCE(?, release_at),
             close_at = COALESCE(?, close_at),
-            extra_instructions = COALESCE(?, extra_instructions)
+            extra_instructions = COALESCE(?, extra_instructions),
+            course_id = COALESCE(?, course_id),
+            topic_id = COALESCE(?, topic_id),
+            coursework_id = COALESCE(?, coursework_id),
+            posted_to_classroom = COALESCE(?, posted_to_classroom)
             WHERE code = ?''', (
             data.get('topic'),
             data.get('chapter'),
@@ -197,6 +207,10 @@ def update_quiz(code):
             data.get('release_at'),
             data.get('close_at'),
             data.get('extra_instructions'),
+            data.get('course_id'),
+            data.get('topic_id'),
+            data.get('coursework_id'),
+            data.get('posted_to_classroom'),
             code.upper()
         ))
         conn.commit()

@@ -3,6 +3,7 @@ import db
 import json
 from datetime import datetime
 from services.gamification import apply_gamification_for_attempt
+from services import classroom
 
 router = Blueprint('attempt', __name__)
 
@@ -73,6 +74,7 @@ def start_attempt():
     quiz_code = data.get('quiz_code')
     student_name = data.get('student_name')
     student_id = data.get('student_id')
+    student_email = data.get('student_email')
 
     if not quiz_code:
         return jsonify({'error': 'Missing quiz_code'}), 400
@@ -80,12 +82,33 @@ def start_attempt():
     try:
         conn = db.get_db()
         quiz = conn.execute('''
-            SELECT id, code, class_name, section_name, release_at, close_at
+            SELECT id, code, class_name, section_name, release_at, close_at,
+                   course_id, posted_to_classroom
             FROM quizzes WHERE code = ?
         ''', (quiz_code.upper(),)).fetchone()
 
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
+
+        # Validate student against Classroom roster if quiz is posted
+        if quiz['posted_to_classroom'] and quiz['course_id']:
+            if not student_email:
+                return jsonify({
+                    'error': 'Student email required for Classroom quizzes',
+                    'code': 'email_required'
+                }), 400
+            
+            # Validate student is in course roster
+            validation = classroom.validate_student_in_course(quiz['course_id'], student_email)
+            if not validation.get('valid'):
+                return jsonify({
+                    'error': 'You are not enrolled in this course',
+                    'code': 'not_enrolled',
+                    'details': validation.get('error', 'Student not found in roster')
+                }), 403
+            
+            # Store student userId for grade sync later
+            student_user_id = validation.get('userId')
 
         # Validate release window
         quiz_window_error = validate_release_window(quiz['release_at'], quiz['close_at'])
@@ -162,7 +185,10 @@ def start_attempt():
             'violation_count': 0,
         }, room=quiz_code.upper())
 
-        return jsonify({'attempt_id': attempt_id})
+        return jsonify({
+            'attempt_id': attempt_id,
+            'student_user_id': student_user_id if quiz['posted_to_classroom'] else None
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -176,6 +202,7 @@ def complete_attempt(id):
     time_taken_s = max(0, to_int(data.get('time_taken_s'), 0))
     status = data.get('status', 'completed')
     answers = data.get('answers', [])
+    student_email = data.get('student_email')
 
     try:
         conn = db.get_db()
@@ -192,6 +219,12 @@ def complete_attempt(id):
                 except:
                     pass
             return jsonify({'success': True, 'already_completed': True, 'rewards': parsed_rewards})
+
+        # Get quiz details for grade sync
+        quiz = conn.execute('''
+            SELECT course_id, coursework_id, posted_to_classroom
+            FROM quizzes WHERE code = ?
+        ''', (existing['quiz_code'],)).fetchone()
 
         # Update attempt
         conn.execute('''
@@ -276,6 +309,17 @@ def complete_attempt(id):
                     id
                 ))
                 conn.commit()
+
+        # Sync grade to Classroom if quiz is posted
+        if quiz and quiz['posted_to_classroom'] and quiz['course_id'] and quiz['coursework_id']:
+            if student_email:
+                # Queue grade sync (non-blocking)
+                classroom.queue_grade_sync(
+                    quiz['course_id'],
+                    quiz['coursework_id'],
+                    student_email,
+                    percentage
+                )
 
         return jsonify({'success': True, 'rewards': rewards})
     except Exception as e:

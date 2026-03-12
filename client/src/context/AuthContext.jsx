@@ -11,7 +11,8 @@ export function AuthProvider({ children }) {
         const saved = localStorage.getItem('mathmind_teacher');
         if (saved) {
             try {
-                setUser(JSON.parse(saved));
+                const userData = JSON.parse(saved);
+                setUser(userData);
             } catch (e) {
                 localStorage.removeItem('mathmind_teacher');
             }
@@ -46,7 +47,7 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={{ user, login, logout, googleLogin, isAuthenticated: !!user, loading }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 }

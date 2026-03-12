@@ -1,75 +1,47 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useStudent } from '../context/StudentContext';
 import { useTheme } from '../context/ThemeContext';
 import RegisSettingsModal from '../components/RegisSettingsModal';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout, googleLogin } = useAuth();
-  const { isStudentAuthenticated, student, logout: logoutStudent, googleLogin: studentGoogleLogin } = useStudent();
+  const { isAuthenticated, user, logout, login } = useAuth();
+  const { isStudentAuthenticated, student, logout: logoutStudent } = useStudent();
   const { darkMode, toggleDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
-  const teacherButtonRef = useRef(null);
-  const studentButtonRef = useRef(null);
 
-  // Initialize Google Sign-In buttons after component mounts
+  // Handle OAuth callback
   useEffect(() => {
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      // DEBUG: Log the client ID being used
-      console.log('VITE_GOOGLE_CLIENT_ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
-      
-      // Initialize Teacher Google Sign-In
-      if (teacherButtonRef.current && !teacherButtonRef.current.hasAttribute('data-initialized')) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
-          callback: async (response) => {
-            try {
-              await googleLogin(response.credential);
-              navigate('/teacher/dashboard-home');
-            } catch (error) {
-              console.error('Teacher Google login failed:', error);
-              alert('Login failed. Please try again.');
-            }
-          },
-        });
+    const params = new URLSearchParams(window.location.search);
+    const loginSuccess = params.get('login_success');
+    const userType = params.get('user_type');
+    const userData = params.get('user_data');
+    const error = params.get('error');
 
-        window.google.accounts.id.renderButton(teacherButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'signin_with',
-        });
-        teacherButtonRef.current.setAttribute('data-initialized', 'true');
-      }
+    if (error) {
+      alert('Login failed: ' + decodeURIComponent(error));
+      window.history.replaceState({}, document.title, '/');
+      return;
+    }
 
-      // Initialize Student Google Sign-In
-      if (studentButtonRef.current && !studentButtonRef.current.hasAttribute('data-initialized')) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
-          callback: async (response) => {
-            try {
-              const decoded = JSON.parse(atob(response.credential.split('.')[1]));
-              await studentGoogleLogin(response.credential, decoded.sub);
-              navigate('/student/dashboard');
-            } catch (error) {
-              console.error('Student Google login failed:', error);
-              alert('Login failed. Please try again.');
-            }
-          },
-        });
-
-        window.google.accounts.id.renderButton(studentButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          width: '100%',
-          text: 'signin_with',
-        });
-        studentButtonRef.current.setAttribute('data-initialized', 'true');
+    if (loginSuccess && userData) {
+      try {
+        const parsedUser = JSON.parse(decodeURIComponent(userData));
+        if (userType === 'teacher') {
+          login(parsedUser);
+          navigate('/teacher/dashboard-home');
+        } else if (userType === 'student') {
+          navigate('/student/dashboard');
+        }
+        window.history.replaceState({}, document.title, '/');
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
       }
     }
-  }, [googleLogin, studentGoogleLogin, navigate]);
+  }, [navigate, login]);
 
   return (
     <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-5 py-12 relative transition-colors duration-300">
@@ -135,7 +107,12 @@ export default function Home() {
               Go to Dashboard
             </button>
           ) : (
-            <div ref={teacherButtonRef} className="w-full flex justify-center"></div>
+            <GoogleLoginButton
+              user_type="teacher"
+              text="Sign in with Google"
+              fullWidth
+              size="lg"
+            />
           )}
         </div>
 
@@ -157,7 +134,12 @@ export default function Home() {
               Go to Dashboard
             </button>
           ) : (
-            <div ref={studentButtonRef} className="w-full flex justify-center"></div>
+            <GoogleLoginButton
+              user_type="student"
+              text="Sign in with Google"
+              fullWidth
+              size="lg"
+            />
           )}
         </div>
       </div>

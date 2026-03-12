@@ -18,6 +18,7 @@ export default function TeacherSidebar({ isOpen, onClose }) {
         { name: 'Dashboard', path: '/teacher/dashboard-home', icon: 'D' },
         { name: 'My Quizzes', path: '/teacher/history', icon: 'Q' },
         { name: 'Create Quiz', path: '/teacher/setup', icon: '+' },
+        { name: 'Classroom', path: '/teacher/connect-classroom', icon: '📚' },
         { name: 'Admin', path: '/teacher/admin', icon: 'A' },
     ];
 
