@@ -174,11 +174,23 @@ def get_course_topics(teacher_id, course_id):
         return {'error': 'Teacher not connected to Google Classroom'}
     
     try:
-        response = service.courses().topics().list(
-            courseId=course_id
-        ).execute()
-        
-        topics = response.get('topics', [])
+        topics = []
+        page_token = None
+
+        while True:
+            response = service.courses().topics().list(
+                courseId=course_id,
+                pageSize=100,
+                pageToken=page_token
+            ).execute()
+            
+            # API returns field name 'topic' (singular) in list response
+            topics.extend(response.get('topic', []) or response.get('topics', []))
+            page_token = response.get('nextPageToken')
+            
+            if not page_token:
+                break
+
         formatted = []
         for topic in topics:
             formatted.append({
@@ -244,22 +256,23 @@ def create_assignment(teacher_id, course_id, quiz_data):
         return {'error': 'Teacher not connected to Google Classroom'}
     
     try:
+        # Build payload using fields accepted by Classroom courseWork.create
         assignment = {
             'title': quiz_data.get('title', 'MathMind Quiz'),
-            'description': quiz_data.get('description', ''),  # plain string, not a dict
+            'description': quiz_data.get('description', ''),
             'state': 'PUBLISHED',
             'workType': 'ASSIGNMENT',
-            'maxPoints': quiz_data.get('points', 100),
+            'maxPoints': int(quiz_data.get('points', 100)),
         }
 
-        # Only include dueDate if actually provided (null causes 400)
+        # Only include dueDate when provided; Classroom rejects null/invalid shapes
         if quiz_data.get('due_date'):
             assignment['dueDate'] = quiz_data['due_date']
-
+        
         # Add topic if provided
         if quiz_data.get('topic_id'):
             assignment['topicId'] = quiz_data['topic_id']
-
+        
         # Add materials (quiz link)
         quiz_link = quiz_data.get('quiz_link', '')
         if quiz_link:
@@ -271,7 +284,7 @@ def create_assignment(teacher_id, course_id, quiz_data):
                     }
                 }
             ]
-
+        
         response = service.courses().courseWork().create(
             courseId=course_id,
             body=assignment

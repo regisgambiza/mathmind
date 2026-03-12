@@ -96,7 +96,7 @@ export default function TeacherSetup() {
   
   // Google Classroom integration
   const [postToClassroom, setPostToClassroom] = useState(false);
-  const [classroomSelection, setClassroomSelection] = useState({ course_id: null, topic_id: null });
+  const [classroomSelection, setClassroomSelection] = useState({ courses: [], selections: [] });
   const [teacherId, setTeacherId] = useState(null);
   const [googleConnected, setGoogleConnected] = useState(false);
 
@@ -179,29 +179,42 @@ export default function TeacherSetup() {
       };
 
       // If posting to Classroom and enabled
-      if (postToClassroom && googleConnected && classroomSelection.course_id) {
-        // Create assignment first to get coursework_id
-        try {
-          const assignmentRes = await api.post(`/api/classroom/courses/${classroomSelection.course_id}/assignments`, {
-            teacher_id: teacherId,
-            title: topic,
-            description: `MathMind Quiz - ${grade}\n\nClick the link below to take the quiz.`,
-            quiz_code: code,
-            quiz_link: `${window.location.origin}/quiz/${code}`,
-            topic_id: classroomSelection.topic_id || null,
-            points: 100,
-          });
+      if (postToClassroom && googleConnected && classroomSelection.selections?.length) {
+        const assignmentResults = [];
+        for (const selection of classroomSelection.selections) {
+          try {
+            const assignmentRes = await api.post(`/api/classroom/courses/${selection.course_id}/assignments`, {
+              teacher_id: teacherId,
+              title: topic,
+              description: `MathMind Quiz - ${grade}\n\nClick the link below to take the quiz.`,
+              quiz_code: code,
+            quiz_link: `${window.location.origin}/#/quiz/${code}`,
+              topic_id: selection.topic_id || null,
+              points: 100,
+            });
 
-          if (assignmentRes.data.coursework_id) {
-            quizPayload.course_id = classroomSelection.course_id;
-            quizPayload.topic_id = classroomSelection.topic_id;
-            quizPayload.coursework_id = assignmentRes.data.coursework_id;
-            quizPayload.posted_to_classroom = true;
+            if (assignmentRes.data.coursework_id) {
+              assignmentResults.push({
+                course_id: selection.course_id,
+                topic_id: selection.topic_id,
+                coursework_id: assignmentRes.data.coursework_id,
+              });
+
+              // Store the first successful mapping on the quiz for tracking
+              if (!quizPayload.coursework_id) {
+                quizPayload.course_id = selection.course_id;
+                quizPayload.topic_id = selection.topic_id;
+                quizPayload.coursework_id = assignmentRes.data.coursework_id;
+                quizPayload.posted_to_classroom = true;
+              }
+            }
+          } catch (classroomErr) {
+            console.error('Failed to create Classroom assignment:', classroomErr);
           }
-        } catch (classroomErr) {
-          console.error('Failed to create Classroom assignment:', classroomErr);
+        }
+
+        if (!assignmentResults.length) {
           setError('Quiz created but failed to post to Classroom. You can share the code manually: ' + code);
-          // Continue without Classroom posting
         }
       }
 

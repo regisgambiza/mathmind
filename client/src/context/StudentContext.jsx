@@ -62,6 +62,20 @@ export function StudentProvider({ children }) {
     }
   }, []);
 
+  const hydrateFromOAuth = useCallback(async (userData) => {
+    if (!userData?.id) return null;
+    setStudent({
+      id: userData.id,
+      name: userData.name,
+      email: userData.email || null,
+    });
+    persistStudent(userData);
+    try {
+      await refreshProfile(userData.id);
+    } catch { }
+    return userData;
+  }, [refreshProfile]);
+
   const completeAuth = useCallback(async (data) => {
     const account = data?.student;
     if (!account) throw new Error('Invalid student response');
@@ -137,6 +151,7 @@ export function StudentProvider({ children }) {
     register,
     login,
     googleLogin,
+    hydrateFromOAuth,
     logout,
     refreshProfile,
     loadProgress,
@@ -151,6 +166,7 @@ export function StudentProvider({ children }) {
     register,
     login,
     googleLogin,
+    hydrateFromOAuth,
     refreshProfile,
     loadProgress,
     updateSettings,

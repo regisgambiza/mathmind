@@ -4,20 +4,25 @@ import Button from './Button';
 
 /**
  * Classroom Selector Component
- * Allows teachers to select a course and topic for quiz posting
+ * Allows teachers to select one or more courses and choose topics for each
  *
  * @param {number} teacherId - Teacher's ID
- * @param {function} onSelect - Callback with { course_id, topic_id, course_name }
+ * @param {function} onSelect - Callback with shape:
+ *   {
+ *     courses: [courseId],
+ *     selections: [{ course_id, topic_id, course_name }]
+ *   }
  * @param {boolean} disabled - Disabled state
  */
 export default function ClassroomSelector({ teacherId, onSelect, disabled = false }) {
   const [courses, setCourses] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [topicsByCourse, setTopicsByCourse] = useState({});
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState({});
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingTopics, setLoadingTopics] = useState({});
   const [error, setError] = useState('');
-  const [showCreateTopic, setShowCreateTopic] = useState(false);
+  const [showCreateTopic, setShowCreateTopic] = useState(null); // courseId or null
   const [newTopicName, setNewTopicName] = useState('');
 
   // Fetch courses when component mounts or teacherId changes
@@ -27,30 +32,21 @@ export default function ClassroomSelector({ teacherId, onSelect, disabled = fals
     }
   }, [teacherId]);
 
-  // Fetch topics when course is selected
-  useEffect(() => {
-    if (selectedCourse) {
-      fetchTopics();
-    } else {
-      setTopics([]);
-      setSelectedTopic('');
-    }
-  }, [selectedCourse]);
-
   // Notify parent when selection changes
   useEffect(() => {
-    if (selectedCourse) {
-      const course = courses.find(c => c.id === selectedCourse);
-      onSelect({
-        course_id: selectedCourse,
-        topic_id: selectedTopic || null,
+    const selections = selectedCourses.map((courseId) => {
+      const course = courses.find((c) => c.id === courseId);
+      return {
+        course_id: courseId,
+        topic_id: selectedTopics[courseId] || null,
         course_name: course?.name || '',
-      });
-    }
-  }, [selectedCourse, selectedTopic, courses]);
+      };
+    });
+    onSelect({ courses: selectedCourses, selections });
+  }, [selectedCourses, selectedTopics, courses]);
 
   const fetchCourses = async () => {
-    setLoading(true);
+    setLoadingCourses(true);
     setError('');
     try {
       const response = await api.get(`/api/classroom/courses`, { params: { teacher_id: teacherId } });
@@ -58,37 +54,61 @@ export default function ClassroomSelector({ teacherId, onSelect, disabled = fals
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load courses');
     } finally {
-      setLoading(false);
+      setLoadingCourses(false);
     }
   };
 
-  const fetchTopics = async () => {
+  const fetchTopics = async (courseId) => {
+    setLoadingTopics((prev) => ({ ...prev, [courseId]: true }));
     try {
-      const response = await api.get(`/api/classroom/courses/${selectedCourse}/topics`, { params: { teacher_id: teacherId } });
-      setTopics(response.data.topics || []);
+      const response = await api.get(`/api/classroom/courses/${courseId}/topics`, { params: { teacher_id: teacherId } });
+      setTopicsByCourse((prev) => ({ ...prev, [courseId]: response.data.topics || [] }));
     } catch (err) {
-      setTopics([]);
+      setError(err.response?.data?.error || 'Failed to load topics for this course');
+      setTopicsByCourse((prev) => ({ ...prev, [courseId]: [] }));
     }
+    setLoadingTopics((prev) => ({ ...prev, [courseId]: false }));
   };
 
-  const handleCreateTopic = async () => {
+  const handleCourseToggle = (courseId) => {
+    setSelectedCourses((prev) => {
+      if (prev.includes(courseId)) {
+        const next = prev.filter((c) => c !== courseId);
+        // drop topic selection for removed course
+        setSelectedTopics((topics) => {
+          const t = { ...topics };
+          delete t[courseId];
+          return t;
+        });
+        return next;
+      }
+      // newly added course: fetch topics
+      fetchTopics(courseId);
+      return [...prev, courseId];
+    });
+  };
+
+  const handleCreateTopic = async (courseId) => {
     if (!newTopicName.trim()) return;
 
-    setLoading(true);
+    setLoadingTopics((prev) => ({ ...prev, [courseId]: true }));
     try {
-      const response = await api.post(`/api/classroom/courses/${selectedCourse}/topics`, {
+      const response = await api.post(`/api/classroom/courses/${courseId}/topics`, {
         teacher_id: teacherId,
         name: newTopicName.trim(),
       });
 
-      setTopics([...topics, response.data]);
-      setSelectedTopic(response.data.id);
-      setShowCreateTopic(false);
+      setTopicsByCourse((prev) => ({
+        ...prev,
+        [courseId]: [...(prev[courseId] || []), response.data],
+      }));
+      setSelectedTopics((prev) => ({ ...prev, [courseId]: response.data.id }));
+      setShowCreateTopic(null);
       setNewTopicName('');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create topic');
     } finally {
-      setLoading(false);
+      setLoadingTopics((prev) => ({ ...prev, [courseId]: false }));
     }
   };
 
@@ -117,9 +137,9 @@ export default function ClassroomSelector({ teacherId, onSelect, disabled = fals
       {/* Course Selection */}
       <div>
         <label className="block text-sm font-medium text-ink mb-2">
-          Google Classroom Course
+          Google Classroom Courses (select one or more)
         </label>
-        {loading && !courses.length ? (
+        {loadingCourses && !courses.length ? (
           <div className="text-muted text-sm">Loading courses...</div>
         ) : courses.length === 0 ? (
           <div className="text-muted text-sm">
@@ -132,74 +152,78 @@ export default function ClassroomSelector({ teacherId, onSelect, disabled = fals
             </button>
           </div>
         ) : (
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            disabled={disabled || loading}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-accent2"
-          >
-            <option value="">Select a course...</option>
+          <div className="space-y-2 max-h-64 overflow-y-auto border border-border rounded-xl p-3">
             {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.name} {course.section ? `(${course.section})` : ''}
-              </option>
+              <label
+                key={course.id}
+                className="flex items-center gap-3 text-sm text-ink"
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={selectedCourses.includes(course.id)}
+                  onChange={() => handleCourseToggle(course.id)}
+                  disabled={disabled || loadingCourses}
+                />
+                <span>{course.name} {course.section ? `(${course.section})` : ''}</span>
+              </label>
             ))}
-          </select>
+          </div>
         )}
       </div>
 
-      {/* Topic Selection */}
-      {selectedCourse && (
-        <div>
-          <label className="block text-sm font-medium text-ink mb-2">
-            Topic (Optional)
-          </label>
-          {topics.length === 0 ? (
-            <div className="space-y-2">
-              <select
-                value={selectedTopic}
-                onChange={(e) => setSelectedTopic(e.target.value)}
-                disabled={disabled || loading}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-accent2"
-              >
-                <option value="">No topic (main stream)</option>
-              </select>
+      {/* Topic Selection per course */}
+      {selectedCourses.map((courseId) => {
+        const course = courses.find((c) => c.id === courseId);
+        const topics = topicsByCourse[courseId] || [];
+        const loading = loadingTopics[courseId];
+
+        return (
+          <div key={courseId} className="p-3 border border-border rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-ink">
+                Topic for {course?.name || 'Course'}
+              </p>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCreateTopic(true)}
+                onClick={() => fetchTopics(courseId)}
                 disabled={disabled || loading}
               >
-                + Create new topic
+                Refresh
               </Button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <select
-                value={selectedTopic}
-                onChange={(e) => setSelectedTopic(e.target.value)}
-                disabled={disabled || loading}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-accent2"
-              >
-                <option value="">No topic (main stream)</option>
-                {topics.map((topic) => (
-                  <option key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </option>
-                ))}
-              </select>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCreateTopic(true)}
-                disabled={disabled || loading}
-              >
-                + Create new topic
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+
+            {loading ? (
+              <div className="text-muted text-sm">Loading topics...</div>
+            ) : (
+              <div className="space-y-2">
+                <select
+                  value={selectedTopics[courseId] || ''}
+                  onChange={(e) => setSelectedTopics((prev) => ({ ...prev, [courseId]: e.target.value }))}
+                  disabled={disabled}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-accent2"
+                >
+                  <option value="">No topic (main stream)</option>
+                  {topics.map((topic) => (
+                    <option key={topic.id} value={topic.id}>
+                      {topic.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateTopic(courseId)}
+                  disabled={disabled || loading}
+                >
+                  + Create new topic
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Create Topic Modal */}
       {showCreateTopic && (
@@ -217,19 +241,19 @@ export default function ClassroomSelector({ teacherId, onSelect, disabled = fals
             <div className="flex gap-3">
               <Button
                 variant="primary"
-                onClick={handleCreateTopic}
-                disabled={loading || !newTopicName.trim()}
+                onClick={() => handleCreateTopic(showCreateTopic)}
+                disabled={loadingTopics[showCreateTopic] || !newTopicName.trim()}
                 fullWidth
               >
-                {loading ? 'Creating...' : 'Create Topic'}
+                {loadingTopics[showCreateTopic] ? 'Creating...' : 'Create Topic'}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setShowCreateTopic(false);
+                  setShowCreateTopic(null);
                   setNewTopicName('');
                 }}
-                disabled={loading}
+                disabled={loadingTopics[showCreateTopic]}
                 fullWidth
               >
                 Cancel

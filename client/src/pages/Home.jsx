@@ -1,17 +1,101 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useStudent } from '../context/StudentContext';
 import { useTheme } from '../context/ThemeContext';
+import { useQuiz } from '../context/QuizContext';
 import RegisSettingsModal from '../components/RegisSettingsModal';
 import GoogleLoginButton from '../components/GoogleLoginButton';
+import api from '../hooks/useApi';
 
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout, login } = useAuth();
-  const { isStudentAuthenticated, student, logout: logoutStudent } = useStudent();
+  const { isStudentAuthenticated, student, hydrateFromOAuth, logout: logoutStudent } = useStudent();
   const { darkMode, toggleDarkMode } = useTheme();
+  const {
+    setStudentName,
+    setQuizConfig,
+    setAttemptId,
+    setQuizCode,
+    setTimeLimit,
+    setSubmissionRewards,
+    setCurrentQuestions,
+  } = useQuiz();
   const [showSettings, setShowSettings] = useState(false);
+
+  // Capture pending quiz code from direct links (e.g., /quiz/ABCD or #/quiz/ABCD)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('quiz_code');
+    const pathMatch = window.location.pathname.match(/\/quiz\/([A-Za-z0-9]+)/i);
+    const hashMatch = window.location.hash.match(/#\/quiz\/([A-Za-z0-9]+)/i);
+    const code = (codeParam || pathMatch?.[1] || hashMatch?.[1] || '').toUpperCase();
+    if (code) {
+      sessionStorage.setItem('pending_quiz_code', code);
+    }
+  }, []);
+
+  const startQuizFromCode = useCallback(async (quizCode, studentInfo) => {
+    if (!quizCode) return;
+    try {
+      const normalizedCode = quizCode.toUpperCase();
+      const quizRes = await api.get(`/api/quiz/${normalizedCode}`);
+      const quiz = quizRes.data;
+
+      const attemptRes = await api.post('/api/attempt/start', {
+        quiz_code: normalizedCode,
+        student_id: studentInfo?.id,
+        student_name: studentInfo?.name,
+        student_email: studentInfo?.email,
+      });
+
+      const parsedSubtopics = Array.isArray(quiz.subtopic)
+        ? quiz.subtopic
+        : (() => {
+          try {
+            return quiz.subtopic ? JSON.parse(quiz.subtopic) : [];
+          } catch {
+            return [];
+          }
+        })();
+
+      setStudentName(studentInfo?.name || '');
+      setQuizConfig({
+        topic: quiz.topic,
+        grade: quiz.grade,
+        count: quiz.q_count,
+        types: quiz.question_types,
+        extra: quiz.extra_instructions || '',
+        chapter: quiz.chapter || quiz.topic,
+        subtopics: parsedSubtopics,
+        activity_type: quiz.activity_type || 'class_activity',
+        class_name: quiz.class_name || null,
+        section_name: quiz.section_name || null,
+      });
+      setAttemptId(attemptRes.data.attempt_id);
+      setQuizCode(normalizedCode);
+      setTimeLimit(Number(quiz.time_limit_mins) || 0);
+      setSubmissionRewards(null);
+      setCurrentQuestions([]);
+
+      sessionStorage.removeItem('pending_quiz_code');
+      navigate('/quiz/loading', { replace: true });
+    } catch (err) {
+      console.error('Failed to auto-start quiz from link:', err);
+      sessionStorage.removeItem('pending_quiz_code');
+      navigate('/student/dashboard', { replace: true });
+    }
+  }, [
+    navigate,
+    setAttemptId,
+    setCurrentQuestions,
+    setQuizCode,
+    setQuizConfig,
+    setStudentName,
+    setSubmissionRewards,
+    setTimeLimit,
+  ]);
 
   // Handle OAuth callback
   useEffect(() => {
@@ -28,20 +112,36 @@ export default function Home() {
     }
 
     if (loginSuccess && userData) {
-      try {
-        const parsedUser = JSON.parse(decodeURIComponent(userData));
-        if (userType === 'teacher') {
-          login(parsedUser);
-          navigate('/teacher/dashboard-home');
-        } else if (userType === 'student') {
-          navigate('/student/dashboard');
+      (async () => {
+        try {
+          const parsedUser = JSON.parse(decodeURIComponent(userData));
+          if (userType === 'teacher') {
+            login(parsedUser);
+            navigate('/teacher/dashboard-home');
+          } else if (userType === 'student') {
+            await hydrateFromOAuth(parsedUser);
+            const pending = sessionStorage.getItem('pending_quiz_code');
+            if (pending) {
+              await startQuizFromCode(pending, parsedUser);
+            } else {
+              navigate('/student/dashboard');
+            }
+          }
+          window.history.replaceState({}, document.title, '/');
+        } catch (e) {
+          console.error('Failed to parse user data:', e);
         }
-        window.history.replaceState({}, document.title, '/');
-      } catch (e) {
-        console.error('Failed to parse user data:', e);
-      }
+      })();
     }
-  }, [navigate, login]);
+  }, [navigate, login, hydrateFromOAuth, startQuizFromCode]);
+
+  // If already logged in as student and a pending quiz code exists, jump straight in
+  useEffect(() => {
+    const pending = sessionStorage.getItem('pending_quiz_code');
+    if (pending && isStudentAuthenticated && student) {
+      startQuizFromCode(pending, student);
+    }
+  }, [isStudentAuthenticated, student, startQuizFromCode]);
 
   return (
     <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-5 py-12 relative transition-colors duration-300">
@@ -159,4 +259,3 @@ export default function Home() {
     </div>
   );
 }
-
