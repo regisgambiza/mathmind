@@ -39,7 +39,7 @@ def is_port_in_use(port):
 
 
 def kill_process_on_port(port):
-    """Kill any process using the specified port."""
+    """Kill only Python/Node processes using the specified port."""
     try:
         # Find PID using the port
         result = subprocess.run(
@@ -48,22 +48,33 @@ def kill_process_on_port(port):
             text=True,
             creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
         )
-        
+
         killed_pids = set()  # Track already killed PIDs to avoid duplicates
         for line in result.stdout.splitlines():
             if f":{port}" in line:
                 parts = line.split()
-                if parts:
+                if len(parts) >= 5:
                     pid = parts[-1]
+                    # Only kill Python or Node processes, not Chrome or other apps
                     if pid not in killed_pids and pid.isdigit():
+                        # Check what process this PID belongs to
                         try:
-                            subprocess.run(
-                                ["taskkill", "/F", "/PID", pid],
+                            proc_result = subprocess.run(
+                                ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV"],
                                 capture_output=True,
+                                text=True,
                                 creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
                             )
-                            print(f"  Killed process {pid} on port {port}")
-                            killed_pids.add(pid)
+                            proc_name = proc_result.stdout.lower()
+                            # Only kill if it's python or node, not chrome/browser
+                            if ('python' in proc_name or 'node' in proc_name) and 'chrome' not in proc_name:
+                                subprocess.run(
+                                    ["taskkill", "/F", "/PID", pid],
+                                    capture_output=True,
+                                    creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                                )
+                                print(f"  Killed {proc_name.split()[0]} process {pid} on port {port}")
+                                killed_pids.add(pid)
                         except Exception:
                             pass
     except Exception:
@@ -73,14 +84,12 @@ def kill_process_on_port(port):
 def start_server(name, config):
     """Start a server in the background."""
     print(f"Starting {config['name']}...")
-    # Use shell=True on Windows to resolve npm properly
-    # CREATE_NO_WINDOW keeps it in background but we lose logs
-    # For debugging, use CREATE_NEW_CONSOLE to see output in separate window
+    # Run in background without opening new console window
     process = subprocess.Popen(
         config["command"],
         cwd=os.path.dirname(os.path.abspath(__file__)),
         shell=True,
-        creationflags=subprocess.CREATE_NEW_CONSOLE
+        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
     )
     return process
 

@@ -172,35 +172,78 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 
-@router.route('/google-login', methods=['POST'])
+@router.route('/google-login', methods=['POST', 'OPTIONS'])
 def google_login():
     """Handle Google OAuth login for students"""
+    if request.method == 'OPTIONS':
+        return '', 204
+
+    import os
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+
     data = request.get_json()
     credential = data.get('credential')
-    google_id = data.get('google_id')
 
-    if not credential and not google_id:
-        return jsonify({'error': 'Google credential or google_id is required'}), 400
+    if not credential:
+        return jsonify({'error': 'Google credential is required'}), 400
 
     try:
-        conn = db.get_db()
-        student = None
+        CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+        if not CLIENT_ID:
+            return jsonify({'error': 'Google OAuth not configured'}), 500
 
-        # Try to find student by google_id
-        if google_id:
-            student = conn.execute('''
-                SELECT * FROM students WHERE google_id = ?
-            ''', (google_id,)).fetchone()
+        idinfo = id_token.verify_oauth2_token(
+            credential,
+            google_requests.Request(),
+            CLIENT_ID
+        )
+
+        google_id = idinfo['sub']
+        email = idinfo.get('email', '')
+        name = idinfo.get('name', email.split('@')[0])
+
+        conn = db.get_db()
+
+        # Find existing student
+        student = conn.execute(
+            'SELECT * FROM students WHERE google_id = ?', (google_id,)
+        ).fetchone()
 
         if not student:
-            return jsonify({'error': 'Student not found. Please register first.'}), 404
+            student = conn.execute(
+                'SELECT * FROM students WHERE email = ?', (email,)
+            ).fetchone()
 
-        conn.execute('UPDATE students SET last_login_at = datetime(\'now\') WHERE id = ?', (student['id'],))
-        conn.commit()
+        if not student:
+            # Auto-create student
+            cursor = conn.execute(
+                '''INSERT INTO students (name, google_id, email, pin, last_login_at)
+                   VALUES (?, ?, ?, ?, datetime('now'))''',
+                (name, google_id, email, '')
+            )
+            conn.commit()
+            student = conn.execute(
+                'SELECT * FROM students WHERE id = ?', (cursor.lastrowid,)
+            ).fetchone()
+        else:
+            # Update google_id if missing
+            conn.execute(
+                'UPDATE students SET google_id = ?, last_login_at = datetime(\'now\') WHERE id = ?',
+                (google_id, student['id'])
+            )
+            conn.commit()
 
         profile = get_student_by_id(conn, student['id'])
         return jsonify({'success': True, 'student': dict(profile)})
+
+    except ValueError as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Invalid Google credential: {str(e)}'}), 401
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
