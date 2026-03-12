@@ -294,16 +294,24 @@ def complete_attempt(id):
         # Sync grade to Classroom if quiz is posted
         if quiz and quiz['posted_to_classroom'] and quiz['course_id'] and quiz['coursework_id']:
             if student_email:
-                # Queue grade sync (non-blocking)
+                logger.info(f"Queueing grade sync for quiz {quiz['code']} coursework {quiz['coursework_id']} email {student_email} pct={percentage}")
                 classroom.queue_grade_sync(
                     quiz['course_id'],
                     quiz['coursework_id'],
                     student_email,
                     percentage
                 )
+                try:
+                    results = classroom.process_grade_sync_queue()
+                    logger.info(f"Grade sync queue processed: {results}")
+                except Exception as sync_err:
+                    current_app.logger.error(f"Grade sync queue processing failed: {sync_err}")
+            else:
+                logger.warning(f"Grade sync skipped: missing student_email for attempt {id}")
 
         return jsonify({'success': True, 'rewards': rewards})
     except Exception as e:
+        logger.exception(f"Error completing attempt {id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 

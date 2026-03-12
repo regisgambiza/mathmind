@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuiz } from '../context/QuizContext';
 import { useVisibilityGuard } from '../hooks/useVisibilityGuard';
 import { useRegis } from '../context/RegisContext';
+import { useStudent } from '../context/StudentContext';
 import { generateHint } from '../utils/aiHints';
 import { io } from 'socket.io-client';
 import TopBar from '../components/TopBar';
@@ -60,6 +61,7 @@ export default function QuizPage() {
     subtopics,
     quizConfig
   } = useQuiz();
+  const { student } = useStudent();
 
   const [qIdx, setQIdx] = useState(0);
   const [answered, setAnswered] = useState(false);
@@ -145,6 +147,7 @@ export default function QuizPage() {
     let rewards = null;
     if (attemptId) {
       try {
+        console.log('[QuizPage] Completing attempt', { attemptId, pct, total, status, email: student?.email });
         const res = await api.patch(`/api/attempt/${attemptId}/complete`, {
           score: correct,
           total,
@@ -152,6 +155,7 @@ export default function QuizPage() {
           time_taken_s: timeSec,
           status,
           answers: currentAnswers,
+          student_email: student?.email || null,
         });
         rewards = res.data?.rewards || null;
         
@@ -167,7 +171,9 @@ export default function QuizPage() {
             time_taken: timeSec,
           });
         }
-      } catch { }
+      } catch (err) {
+        console.error('[QuizPage] Failed to complete attempt', err);
+      }
     }
     setSubmissionRewards(rewards);
 

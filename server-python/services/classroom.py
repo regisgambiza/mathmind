@@ -435,6 +435,7 @@ def queue_grade_sync(course_id, coursework_id, student_email, percentage):
         VALUES (?, ?, ?, ?, 'pending')
     ''', (course_id, coursework_id, student_email, percentage))
     conn.commit()
+    logger.info(f"Enqueued grade sync course={course_id} coursework={coursework_id} student={student_email} pct={percentage}")
     return conn.lastrowid
 
 
@@ -449,6 +450,8 @@ def process_grade_sync_queue():
     ''').fetchall()
     
     results = {'synced': 0, 'failed': 0, 'retried': 0}
+    if not pending:
+        logger.info("Grade sync queue empty")
     
     for item in pending:
         # Find teacher who owns this course
@@ -462,6 +465,7 @@ def process_grade_sync_queue():
             # Get student userId from roster
             roster_result = get_course_roster(teacher['id'], item['course_id'])
             if 'error' in roster_result:
+                logger.warning(f"Roster fetch failed for teacher {teacher['id']}: {roster_result['error']}")
                 continue
             
             student_user_id = None
@@ -471,6 +475,7 @@ def process_grade_sync_queue():
                     break
             
             if not student_user_id:
+                logger.warning(f"Student {item['student_email']} not found in roster for course {item['course_id']} (teacher {teacher['id']})")
                 continue
             
             # Sync grade
@@ -492,6 +497,7 @@ def process_grade_sync_queue():
                 conn.commit()
                 results['synced'] += 1
                 synced = True
+                logger.info(f"Grade synced for {item['student_email']} coursework {item['coursework_id']} with teacher {teacher['id']}")
                 break
         
         if not synced:
@@ -504,5 +510,6 @@ def process_grade_sync_queue():
             ''', ('Failed to sync - teacher disconnected or student not found', item['id']))
             conn.commit()
             results['retried'] += 1
+            logger.warning(f"Grade sync retry queued for {item['student_email']} coursework {item['coursework_id']}")
     
     return results

@@ -60,12 +60,6 @@ def handle_join_quiz(code):
     if code:
         quiz_code = code.upper()
         join_room(quiz_code)
-        # Store quiz code in socket session
-        from flask_socketio import sessions
-        try:
-            sessions[request.sid] = {'quiz_code': quiz_code}
-        except Exception as e:
-            socket_logger.warning(f"Failed to store session: {e}")
         socket_logger.info(f"📚 Student joined quiz: {quiz_code}, Socket: {request.sid}")
 
         # FIXED: Emit consistent student_joined event shape matching Node.js attempt/start
