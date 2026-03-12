@@ -26,6 +26,16 @@ export default function StudentJoin() {
     if (!isStudentAuthenticated) {
       navigate('/student/login', { replace: true, state: { from: '/student/join' } });
     }
+    const pending = sessionStorage.getItem('pending_quiz_code');
+    if (pending) {
+      console.log('[StudentJoin] Prefilling pending code', pending);
+      setCode(pending);
+    }
+    const err = sessionStorage.getItem('pending_quiz_error');
+    if (err) {
+      setError(`We had trouble starting your quiz automatically. Please retry. (${err})`);
+      sessionStorage.removeItem('pending_quiz_error');
+    }
   }, [isStudentAuthenticated, navigate]);
 
   const handleSubmit = async () => {

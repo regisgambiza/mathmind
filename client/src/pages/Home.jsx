@@ -24,25 +24,26 @@ export default function Home() {
   } = useQuiz();
   const [showSettings, setShowSettings] = useState(false);
 
-  // Capture pending quiz code from direct links (e.g., /quiz/ABCD or #/quiz/ABCD)
+  // Capture pending quiz code from query (set in main.jsx) to ensure we don't miss the OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('quiz_code');
-    const pathMatch = window.location.pathname.match(/\/quiz\/([A-Za-z0-9]+)/i);
-    const hashMatch = window.location.hash.match(/#\/quiz\/([A-Za-z0-9]+)/i);
-    const code = (codeParam || pathMatch?.[1] || hashMatch?.[1] || '').toUpperCase();
-    if (code) {
-      sessionStorage.setItem('pending_quiz_code', code);
+    if (codeParam) {
+      sessionStorage.setItem('pending_quiz_code', codeParam.toUpperCase());
+      console.log('[Home] stored pending_quiz_code from query', codeParam.toUpperCase());
     }
   }, []);
 
   const startQuizFromCode = useCallback(async (quizCode, studentInfo) => {
     if (!quizCode) return;
+    console.log('[Home] startQuizFromCode called with', quizCode, studentInfo);
     try {
       const normalizedCode = quizCode.toUpperCase();
+      console.log('[Home] Fetching quiz', normalizedCode);
       const quizRes = await api.get(`/api/quiz/${normalizedCode}`);
       const quiz = quizRes.data;
 
+      console.log('[Home] Starting attempt for', normalizedCode, 'student', studentInfo?.id);
       const attemptRes = await api.post('/api/attempt/start', {
         quiz_code: normalizedCode,
         student_id: studentInfo?.id,
@@ -80,11 +81,13 @@ export default function Home() {
       setCurrentQuestions([]);
 
       sessionStorage.removeItem('pending_quiz_code');
+      console.log('[Home] Quiz context set, navigating to /quiz/loading');
       navigate('/quiz/loading', { replace: true });
     } catch (err) {
       console.error('Failed to auto-start quiz from link:', err);
-      sessionStorage.removeItem('pending_quiz_code');
-      navigate('/student/dashboard', { replace: true });
+      // Keep pending code so student can retry from Join page
+      sessionStorage.setItem('pending_quiz_error', err?.message || 'unknown_error');
+      navigate('/student/join', { replace: true });
     }
   }, [
     navigate,
@@ -105,6 +108,8 @@ export default function Home() {
     const userData = params.get('user_data');
     const error = params.get('error');
 
+    console.log('[Home] OAuth callback params', { loginSuccess, userType, hasUserData: !!userData, error });
+
     if (error) {
       alert('Login failed: ' + decodeURIComponent(error));
       window.history.replaceState({}, document.title, '/');
@@ -121,6 +126,7 @@ export default function Home() {
           } else if (userType === 'student') {
             await hydrateFromOAuth(parsedUser);
             const pending = sessionStorage.getItem('pending_quiz_code');
+            console.log('[Home] Student OAuth hydrated. pending_quiz_code=', pending);
             if (pending) {
               await startQuizFromCode(pending, parsedUser);
             } else {

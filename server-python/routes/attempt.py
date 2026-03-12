@@ -75,6 +75,7 @@ def start_attempt():
     student_name = data.get('student_name')
     student_id = data.get('student_id')
     student_email = data.get('student_email')
+    student_user_id = None
 
     if not quiz_code:
         return jsonify({'error': 'Missing quiz_code'}), 400
@@ -89,26 +90,6 @@ def start_attempt():
 
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
-
-        # Validate student against Classroom roster if quiz is posted
-        if quiz['posted_to_classroom'] and quiz['course_id']:
-            if not student_email:
-                return jsonify({
-                    'error': 'Student email required for Classroom quizzes',
-                    'code': 'email_required'
-                }), 400
-            
-            # Validate student is in course roster
-            validation = classroom.validate_student_in_course(quiz['course_id'], student_email)
-            if not validation.get('valid'):
-                return jsonify({
-                    'error': 'You are not enrolled in this course',
-                    'code': 'not_enrolled',
-                    'details': validation.get('error', 'Student not found in roster')
-                }), 403
-            
-            # Store student userId for grade sync later
-            student_user_id = validation.get('userId')
 
         # Validate release window
         quiz_window_error = validate_release_window(quiz['release_at'], quiz['close_at'])

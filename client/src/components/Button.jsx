@@ -19,6 +19,7 @@ export default function Button({
   size = 'md',
   disabled = false,
   loading = false,
+  fullWidth = false,
   className = '',
   onClick,
   type = 'button',
@@ -50,7 +51,7 @@ export default function Button({
       onClick={onClick}
       disabled={isDisabled}
       aria-label={ariaLabel}
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${isDisabled ? 'cursor-not-allowed' : ''} ${className}`}
+      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${isDisabled ? 'cursor-not-allowed' : ''} ${className}`}
       {...props}
     >
       {loading ? (
