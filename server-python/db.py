@@ -80,12 +80,17 @@ SCHEMA = '''
   CREATE TABLE IF NOT EXISTS teachers (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     username  TEXT UNIQUE NOT NULL,
-    password  TEXT NOT NULL
+    password  TEXT,
+    google_id TEXT,
+    email     TEXT,
+    name      TEXT
   );
   CREATE TABLE IF NOT EXISTS students (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    name              TEXT UNIQUE NOT NULL,
-    pin               TEXT NOT NULL,
+    name              TEXT,
+    pin               TEXT,
+    google_id         TEXT,
+    email             TEXT,
     xp                INTEGER DEFAULT 0,
     level             INTEGER DEFAULT 1,
     streak_days       INTEGER DEFAULT 0,
@@ -303,6 +308,11 @@ SCHEMA = '''
   ALTER TABLE attempts ADD COLUMN current_question INTEGER DEFAULT 0;
   ALTER TABLE attempts ADD COLUMN last_activity_at TEXT;
   ALTER TABLE attempts ADD COLUMN socket_id TEXT;
+  ALTER TABLE teachers ADD COLUMN google_id TEXT;
+  ALTER TABLE teachers ADD COLUMN email TEXT;
+  ALTER TABLE teachers ADD COLUMN name TEXT;
+  ALTER TABLE students ADD COLUMN google_id TEXT;
+  ALTER TABLE students ADD COLUMN email TEXT;
 
   -- Normalize activity types
   UPDATE quizzes SET activity_type = 'class_activity' WHERE activity_type IS NULL OR trim(activity_type) = '';

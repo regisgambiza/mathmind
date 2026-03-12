@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import api from '../hooks/useApi';
 
 const AuthContext = createContext(null);
 
@@ -28,8 +29,23 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('mathmind_teacher');
     };
 
+    const googleLogin = async (credential) => {
+        try {
+            const response = await api.post('/api/auth/google/login', {
+                credential,
+                user_type: 'teacher'
+            });
+            const { user: userData, token } = response.data;
+            login({ ...userData, token, authType: 'google' });
+            return response.data;
+        } catch (error) {
+            console.error('Google login error:', error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, googleLogin, isAuthenticated: !!user, loading }}>
             {!loading && children}
         </AuthContext.Provider>
     );

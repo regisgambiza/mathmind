@@ -172,6 +172,38 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 
+@router.route('/google-login', methods=['POST'])
+def google_login():
+    """Handle Google OAuth login for students"""
+    data = request.get_json()
+    credential = data.get('credential')
+    google_id = data.get('google_id')
+
+    if not credential and not google_id:
+        return jsonify({'error': 'Google credential or google_id is required'}), 400
+
+    try:
+        conn = db.get_db()
+        student = None
+
+        # Try to find student by google_id
+        if google_id:
+            student = conn.execute('''
+                SELECT * FROM students WHERE google_id = ?
+            ''', (google_id,)).fetchone()
+
+        if not student:
+            return jsonify({'error': 'Student not found. Please register first.'}), 404
+
+        conn.execute('UPDATE students SET last_login_at = datetime(\'now\') WHERE id = ?', (student['id'],))
+        conn.commit()
+
+        profile = get_student_by_id(conn, student['id'])
+        return jsonify({'success': True, 'student': dict(profile)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @router.route('/leaderboard', methods=['GET'])
 def get_leaderboard():
     try:

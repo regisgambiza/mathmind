@@ -1,19 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useStudent } from '../context/StudentContext';
+import { useTheme } from '../context/ThemeContext';
 import RegisSettingsModal from '../components/RegisSettingsModal';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
-  const { isStudentAuthenticated, student, logout: logoutStudent } = useStudent();
+  const { isAuthenticated, user, logout, googleLogin } = useAuth();
+  const { isStudentAuthenticated, student, logout: logoutStudent, googleLogin: studentGoogleLogin } = useStudent();
   const { darkMode, toggleDarkMode } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
+  const teacherButtonRef = useRef(null);
+  const studentButtonRef = useRef(null);
+
+  // Initialize Google Sign-In buttons after component mounts
+  useEffect(() => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      // DEBUG: Log the client ID being used
+      console.log('VITE_GOOGLE_CLIENT_ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+      
+      // Initialize Teacher Google Sign-In
+      if (teacherButtonRef.current && !teacherButtonRef.current.hasAttribute('data-initialized')) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
+          callback: async (response) => {
+            try {
+              await googleLogin(response.credential);
+              navigate('/teacher/dashboard-home');
+            } catch (error) {
+              console.error('Teacher Google login failed:', error);
+              alert('Login failed. Please try again.');
+            }
+          },
+        });
+
+        window.google.accounts.id.renderButton(teacherButtonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'signin_with',
+        });
+        teacherButtonRef.current.setAttribute('data-initialized', 'true');
+      }
+
+      // Initialize Student Google Sign-In
+      if (studentButtonRef.current && !studentButtonRef.current.hasAttribute('data-initialized')) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
+          callback: async (response) => {
+            try {
+              const decoded = JSON.parse(atob(response.credential.split('.')[1]));
+              await studentGoogleLogin(response.credential, decoded.sub);
+              navigate('/student/dashboard');
+            } catch (error) {
+              console.error('Student Google login failed:', error);
+              alert('Login failed. Please try again.');
+            }
+          },
+        });
+
+        window.google.accounts.id.renderButton(studentButtonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'signin_with',
+        });
+        studentButtonRef.current.setAttribute('data-initialized', 'true');
+      }
+    }
+  }, [googleLogin, studentGoogleLogin, navigate]);
 
   return (
     <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-5 py-12 relative transition-colors duration-300">
+      {/* Dark Mode Toggle */}
       <button
         onClick={toggleDarkMode}
         className="fixed top-6 left-6 w-10 h-10 bg-card border-2 border-border rounded-xl flex items-center justify-center text-lg hover:border-accent transition-all shadow-sm"
@@ -22,13 +82,14 @@ export default function Home() {
         {darkMode ? '☀️' : '🌙'}
       </button>
 
+      {/* Logout Buttons */}
       <div className="fixed top-6 right-6 flex flex-col items-end gap-2">
         {isAuthenticated && (
           <button
             onClick={logout}
             className="font-syne font-600 text-xs text-muted hover:text-wrong transition-colors"
           >
-            Teacher Logout ({user?.username})
+            Logout ({user?.name || user?.username})
           </button>
         )}
         {isStudentAuthenticated && (
@@ -36,11 +97,12 @@ export default function Home() {
             onClick={logoutStudent}
             className="font-syne font-600 text-xs text-muted hover:text-wrong transition-colors"
           >
-            Student Logout ({student?.name})
+            Logout ({student?.name})
           </button>
         )}
       </div>
 
+      {/* Header */}
       <div className="text-center animate-fadeUp mb-12">
         <div className="inline-flex items-center gap-2 bg-accent/10 text-accent px-4 py-1.5 rounded-full font-syne font-600 text-xs mb-6">
           Powered by Regis
@@ -49,11 +111,13 @@ export default function Home() {
           Math<span className="text-accent">Mind</span>
         </h1>
         <p className="font-dm text-muted text-base max-w-xs mx-auto leading-relaxed">
-          Personalized math quizzes with durable progress tracking and gamified learning.
+          AI-powered math quizzes for personalized learning
         </p>
       </div>
 
-      <div className="w-full max-w-[480px] space-y-4 animate-fadeUp px-0">
+      {/* Login Cards */}
+      <div className="w-full max-w-[480px] space-y-6 animate-fadeUp">
+        {/* Teacher Login Card */}
         <div className="w-full bg-card border-2 border-border rounded-2xl p-6 transition-all duration-200">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center text-2xl">📋</div>
@@ -68,61 +132,37 @@ export default function Home() {
               onClick={() => navigate('/teacher/dashboard-home')}
               className="w-full py-4 rounded-xl bg-accent text-white font-syne font-800 text-sm hover:bg-accent/90 active:scale-[0.98] transition-all"
             >
-              Enter Teacher Dashboard
+              Go to Dashboard
             </button>
           ) : (
-            <button
-              onClick={() => navigate('/teacher/login')}
-              className="w-full py-3 rounded-xl bg-ink text-paper font-syne font-600 text-sm hover:bg-ink/90 active:scale-[0.98] transition-all"
-            >
-              Teacher Login
-            </button>
+            <div ref={teacherButtonRef} className="w-full flex justify-center"></div>
           )}
         </div>
 
-        {isStudentAuthenticated ? (
-          <div className="w-full bg-card border-2 border-accent2/30 rounded-2xl p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 bg-accent2/10 rounded-xl flex items-center justify-center text-2xl">🎓</div>
-              <div>
-                <p className="font-syne font-700 text-ink text-lg">Student</p>
-                <p className="font-dm text-muted text-sm">Signed in as {student?.name}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => navigate('/student/dashboard')}
-                className="py-3 rounded-xl bg-accent2 text-white font-syne font-700 text-sm"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/student/join')}
-                className="py-3 rounded-xl border-2 border-border bg-card font-syne font-700 text-sm text-ink"
-              >
-                Join Quiz
-              </button>
+        {/* Student Login Card */}
+        <div className="w-full bg-card border-2 border-border rounded-2xl p-6 transition-all duration-200">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 bg-accent2/10 rounded-xl flex items-center justify-center text-2xl">🎓</div>
+            <div>
+              <p className="font-syne font-700 text-ink text-lg">Student</p>
+              <p className="font-dm text-muted text-sm">Track your progress</p>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => navigate('/student/login')}
-            className="w-full bg-card border-2 border-border rounded-2xl p-6 text-left hover:border-accent2 hover:shadow-lg transition-all duration-200 active:scale-[0.98] group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-accent2/10 rounded-xl flex items-center justify-center text-2xl">🎓</div>
-              <div>
-                <p className="font-syne font-700 text-ink text-lg">Student</p>
-                <p className="font-dm text-muted text-sm">Sign in and track your progress</p>
-              </div>
-              <svg className="w-5 h-5 text-muted ml-auto group-hover:text-accent2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-        )}
+
+          {isStudentAuthenticated ? (
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="w-full py-4 rounded-xl bg-accent2 text-white font-syne font-800 text-sm hover:bg-accent2/90 active:scale-[0.98] transition-all"
+            >
+              Go to Dashboard
+            </button>
+          ) : (
+            <div ref={studentButtonRef} className="w-full flex justify-center"></div>
+          )}
+        </div>
       </div>
 
+      {/* Settings Button */}
       {isAuthenticated && (
         <button
           onClick={() => setShowSettings(true)}

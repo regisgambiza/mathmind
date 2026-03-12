@@ -80,6 +80,14 @@ export function StudentProvider({ children }) {
     return completeAuth(res.data);
   }, [completeAuth]);
 
+  const googleLogin = useCallback(async (credential, googleId) => {
+    const res = await api.post('/api/student/google-login', { 
+      credential, 
+      google_id: googleId 
+    });
+    return completeAuth(res.data);
+  }, [completeAuth]);
+
   const logout = useCallback(() => {
     setStudent(null);
     setProfile(null);
@@ -127,6 +135,7 @@ export function StudentProvider({ children }) {
     isStudentAuthenticated: !!student,
     register,
     login,
+    googleLogin,
     logout,
     refreshProfile,
     loadProgress,
@@ -140,6 +149,7 @@ export function StudentProvider({ children }) {
     progressLoading,
     register,
     login,
+    googleLogin,
     refreshProfile,
     loadProgress,
     updateSettings,

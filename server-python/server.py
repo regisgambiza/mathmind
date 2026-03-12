@@ -25,12 +25,12 @@ logger.info("MathMind Python Server Starting...")
 logger.info(f"Secret key configured: {bool(os.environ.get('SECRET_KEY'))}")
 logger.info(f"Database path: {db.DB_PATH}")
 
-# FIXED: CORS for localhost:5173 and 127.0.0.1:5173 (frontend dev server)
-# Allow all methods including OPTIONS for preflight
+# CORS configuration - specify exact origins (wildcard doesn't work with supports_credentials)
 CORS(app,
-     resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173", "*"]}},
+     resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
      supports_credentials=True,
-     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, engineio_logger=True)
 
@@ -234,12 +234,21 @@ def log_request():
             pass
 
 @app.after_request
-def log_response(response):
+def after_request(response):
+    # CORS headers
+    origin = request.headers.get('Origin')
+    if origin in ['http://localhost:5173', 'http://127.0.0.1:5173']:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+
+    # Request logging
     if hasattr(request, 'start_time'):
         latency = int((datetime.utcnow() - request.start_time).total_seconds() * 1000)
         log_level = logging.ERROR if response.status_code >= 500 else (logging.WARNING if response.status_code >= 400 else logging.DEBUG)
         http_logger.log(log_level, f"◀️  {response.status_code} {request.method} {request.path} ({latency}ms)")
-        
+
         try:
             conn = db.get_db()
             conn.execute('''
@@ -266,6 +275,14 @@ def log_response(response):
 def health():
     http_logger.debug("Health check requested")
     return jsonify({'status': 'ok'})
+
+
+# ============== Global OPTIONS Handler for CORS Preflight ==============
+
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    """Handle CORS preflight for all API routes"""
+    return '', 204
 
 
 # ============== Import and Register Routes ==============
