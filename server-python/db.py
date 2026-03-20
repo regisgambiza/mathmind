@@ -363,9 +363,23 @@ class DBWrapper:
             sql = re.sub(r'\?', r'%s', sql)
             sql = re.sub(r'INSERT OR IGNORE INTO', 'INSERT INTO', sql, flags=re.IGNORECASE)
             
-            # Date conversions
+            # Date/Time conversions (SQLite -> Postgres)
             sql = re.sub(r'datetime\(\'now\'\)', 'CURRENT_TIMESTAMP', sql, flags=re.IGNORECASE)
+            sql = re.sub(r'date\(\'now\'\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
             sql = re.sub(r'date\(\"now\"\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
+            
+            # Complex SQLite datetime modifiers: datetime('now', '-7 day')
+            sql = re.sub(r'datetime\(\'now\'\s*,\s*\'(-?\d+)\s+(\w+)\'\)', r"(CURRENT_TIMESTAMP + INTERVAL '\1 \2s')", sql, flags=re.IGNORECASE)
+            
+            # strftime('%s', 'now') -> EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
+            sql = re.sub(r'strftime\(\'%s\'\s*,\s*\'now\'\)', 'EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)', sql, flags=re.IGNORECASE)
+            # strftime('%s', column) -> EXTRACT(EPOCH FROM column::TIMESTAMP)
+            sql = re.sub(r'strftime\(\'%s\'\s*,\s*([^)]+)\)', r'EXTRACT(EPOCH FROM (\1)::TIMESTAMP)', sql, flags=re.IGNORECASE)
+            
+            # datetime(column) -> (column)::TIMESTAMP
+            sql = re.sub(r'datetime\(([^)\',]+)\)', r'(\1)::TIMESTAMP', sql, flags=re.IGNORECASE)
+            # date(column) -> (column)::DATE
+            sql = re.sub(r'date\(([^)\',]+)\)', r'(\1)::DATE', sql, flags=re.IGNORECASE)
 
             # Add RETURNING id for INSERTs to support lastrowid
             is_insert = sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper()
