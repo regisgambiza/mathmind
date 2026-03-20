@@ -366,7 +366,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM attempts a
         LEFT JOIN violations v ON v.attempt_id = a.id
         LEFT JOIN answers ans ON ans.attempt_id = a.id
-        GROUP BY a.id
+        GROUP BY a.id, a.quiz_code, a.student_name, a.status, a.started_at, a.completed_at, a.percentage
         ORDER BY datetime(a.started_at) DESC
         LIMIT 300
     ''').fetchall()

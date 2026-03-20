@@ -100,7 +100,7 @@ def get_quiz_dashboard(code):
             LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
             WHERE a.quiz_code = ?
-            GROUP BY a.id
+            GROUP BY a.id, a.student_name, s.email, a.status, a.score, a.total, a.percentage, a.time_taken_s, a.started_at, a.completed_at
             ORDER BY a.started_at DESC
         ''', (code,)).fetchall()
 
@@ -151,7 +151,7 @@ def export_csv(code):
             LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
             WHERE a.quiz_code = ?
-            GROUP BY a.id
+            GROUP BY a.id, a.student_name, s.email, a.status, a.score, a.total, a.percentage, a.time_taken_s, a.started_at, a.completed_at
             ORDER BY a.started_at DESC
         ''', (code,)).fetchall()
 
