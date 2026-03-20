@@ -27,6 +27,11 @@ CLASSROOM_SCOPES = [
 
 def get_teacher_credentials(teacher_id):
     """Get OAuth credentials for a teacher"""
+    try:
+        teacher_id = int(teacher_id)
+    except (ValueError, TypeError):
+        return None
+        
     conn = db.get_db()
     teacher = conn.execute(
         'SELECT * FROM teachers WHERE id = ?',
@@ -72,6 +77,7 @@ def get_teacher_credentials(teacher_id):
 def refresh_teacher_tokens(teacher_id, credentials):
     """Refresh and store new tokens for a teacher"""
     try:
+        teacher_id = int(teacher_id)
         credentials.refresh(google_requests.Request())
         
         conn = db.get_db()

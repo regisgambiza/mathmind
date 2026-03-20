@@ -400,6 +400,7 @@ class DBWrapper:
                 return wrapper
             except Exception as e:
                 logger.error(f"SQL Error: {sql} | Params: {params}")
+                self.conn.rollback() # Ensure aborted transactions are cleaned up
                 raise e
         else:
             # SQLite

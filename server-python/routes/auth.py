@@ -496,7 +496,14 @@ def google_callback():
         if not teacher_id:
             logger.error("No teacher_id in session")
             return redirect(f'{FRONTEND_URL}/teacher/connect-classroom?error=no_teacher_id')
-
+            
+        # State can be teacher_id in some flows, or a random string. 
+        # If it's a teacher_id, we need to cast it.
+        try:
+            teacher_id = int(teacher_id)
+        except:
+            pass
+            
         logger.info(f"Exchanging code for tokens, teacher_id: {teacher_id}")
 
         # Exchange code for tokens
@@ -553,6 +560,11 @@ def google_status():
     teacher_id = request.args.get('teacher_id')
     if not teacher_id:
         return jsonify({'error': 'teacher_id required'}), 400
+    
+    try:
+        teacher_id = int(teacher_id)
+    except (ValueError, TypeError):
+        return jsonify({'error': 'invalid teacher_id'}), 400
     
     try:
         conn = db.get_db()
