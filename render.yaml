@@ -22,7 +22,7 @@ services:
       - key: BACKEND_URL
         value: https://mathmind-backend.onrender.com
       - key: FRONTEND_URL
-        value: https://mathmind-frontend.onrender.com
+        value: https://mathmind-frontend-0j04.onrender.com
 
   # Frontend: React/Vite (Static Site)
   - type: web
