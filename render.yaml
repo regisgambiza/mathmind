@@ -24,9 +24,8 @@ services:
   - type: web
     name: mathmind-frontend
     runtime: static
-    rootDirectory: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: client/dist
     envVars:
       - key: VITE_API_URL
         fromService:
