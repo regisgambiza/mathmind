@@ -32,7 +32,7 @@ services:
         fromService:
           type: web
           name: mathmind-backend
-          property: host
+          property: url
 
 databases:
   - name: mathmind-db
