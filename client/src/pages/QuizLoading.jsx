@@ -4,6 +4,7 @@ import { useRegis } from '../context/RegisContext';
 import { useQuiz } from '../context/QuizContext';
 import { useStudent } from '../context/StudentContext';
 import api from '../hooks/useApi';
+import { buildCurriculumContext } from '../utils/curriculumLoader';
 
 const DEMO_QUESTIONS = [
   {
@@ -688,7 +689,7 @@ export default function QuizLoading() {
 
     const effectiveConfig = quizConfig || (meta ? {
       topic: meta.topic,
-      grade: meta.grade,
+      grade: meta.grade || '7',  // Default to grade 7 if not specified
       count: meta.q_count,
       types: metaTypes,
       extra: meta.extra_instructions || '',
@@ -715,7 +716,19 @@ export default function QuizLoading() {
     if (!isRunActive(runId)) return;
 
     const adaptiveBlock = buildAdaptivePromptBlock(adaptivePlan);
-    const prompt = `You are an expert math teacher creating an adaptive quiz.
+
+    // Build curriculum context for better question alignment
+    const curriculumContext = await buildCurriculumContext(
+      effectiveConfig.grade,
+      effectiveConfig.topic,
+      chapterTitle,
+      safeSubtopics
+    );
+
+    const prompt = `${curriculumContext}
+
+GENERATION TASK:
+You are an expert math teacher creating an adaptive quiz aligned with the curriculum above.
 Generate exactly ${effectiveConfig.count} questions for ${effectiveConfig.grade} on topic "${effectiveConfig.topic}".
 Activity type: ${activityLabel}.
 Question types to use: ${requestedTypes.join(', ')}.

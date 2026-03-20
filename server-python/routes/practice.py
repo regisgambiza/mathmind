@@ -3,6 +3,7 @@ import db
 import json
 from datetime import datetime
 from services.adaptive import build_adaptive_plan, build_default_plan
+from services.curriculum_loader import build_curriculum_context
 
 router = Blueprint('practice', __name__)
 
@@ -319,15 +320,23 @@ def get_next_adaptive_question():
         # Build prompt for AI to generate adaptive question (only if should_generate)
         prompt = None
         if should_generate and next_difficulty != current_difficulty:
-            prompt = f"""Generate a {next_difficulty} difficulty math question for grade {attempt['grade'] or '7'}.
+            # Get curriculum context for better question alignment
+            grade_level = attempt['grade'] or '7'
+            curriculum_ctx = build_curriculum_context(
+                grade=int(grade_level) if grade_level.isdigit() else 7,
+                topic_name=topic or attempt['topic'],
+                chapter=chapter or attempt['chapter'],
+                subtopic=skill_tag
+            )
+            
+            prompt = f"""{curriculum_ctx}
 
-Topic: {topic or attempt['topic'] or 'General Math'}
-Chapter: {chapter or attempt['chapter'] or ''}
-Skill: {skill_tag or 'General'}
+GENERATION TASK:
+Generate a {next_difficulty} difficulty math question aligned with the curriculum above.
 
 Question Type: {selected_type}
 
-Student Performance:
+Student Performance Context:
 - Consecutive correct: {consecutive_correct}
 - Consecutive wrong: {consecutive_wrong}
 - Previous difficulty: {current_difficulty}

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 import db
@@ -27,7 +27,7 @@ logger.info(f"Database path: {db.DB_PATH}")
 
 # CORS configuration - specify exact origins (wildcard doesn't work with supports_credentials)
 CORS(app,
-     resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+     resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
      supports_credentials=True,
      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"])
@@ -276,7 +276,13 @@ def health():
 @app.route('/api/<path:path>', methods=['OPTIONS'])
 def handle_options(path):
     """Handle CORS preflight for all API routes"""
-    return '', 204
+    response = make_response('', 204)
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Max-Age', '600')
+    return response
 
 
 # ============== Import and Register Routes ==============
@@ -292,6 +298,13 @@ app.register_blueprint(student.router, url_prefix='/api/student')
 app.register_blueprint(admin.router, url_prefix='/api/admin')
 app.register_blueprint(practice.router, url_prefix='/api/practice')
 app.register_blueprint(classroom.router, url_prefix='/api/classroom')
+
+# Serve books directory statically (for curriculum JSON files)
+@app.route('/books/<path:filename>')
+def serve_books(filename):
+    """Serve curriculum JSON files from the books directory."""
+    books_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'books')
+    return send_from_directory(books_dir, filename)
 
 http_logger.info("All routes registered")
 

@@ -408,8 +408,14 @@ def init_db():
     
     # Ensure all required columns exist (for databases created before these columns were added)
     _ensure_column(db, 'quizzes', 'adaptive_level', "TEXT DEFAULT 'max'")
+
+    # Ensure generated_question_sets has required columns
+    _ensure_column(db, 'generated_question_sets', 'student_id', 'INTEGER')
+    _ensure_column(db, 'generated_question_sets', 'attempt_id', 'INTEGER')
+    _ensure_column(db, 'generated_question_sets', 'quiz_code', 'TEXT')
+
     db.commit()
-    
+
     return db
 
 
