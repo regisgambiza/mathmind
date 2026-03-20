@@ -35,6 +35,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: mathmind-backend.onrender.com
+      - key: VITE_OPENROUTER_API_KEY
+        sync: false # Set in Render Dashboard
 
 databases:
   - name: mathmind-db
