@@ -8,10 +8,6 @@ export default defineConfig({
     host: true,
     strictPort: true,
     proxy: {
-      '/books': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      },
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true

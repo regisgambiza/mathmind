@@ -96,16 +96,18 @@ export async function findTopicInCurriculum(grade, topicName = null, chapter = n
         topicNameField.includes(chapterSearch)
       );
 
-      // Check if topic matches
+      // Check if topic matches (also match against chapter name for broad terms like "Fractions")
       const topicMatches = (
         topicSearch && (
           topicNameField.includes(topicSearch) ||
-          topicSearch.includes(topicNameField.split(' ')[0])
+          topicSearch.includes(topicNameField.split(' ')[0]) ||
+          chapterName.includes(topicSearch)
         )
       ) || (
         subtopicSearch && (
           topicNameField.includes(subtopicSearch) ||
-          topicNameField.startsWith(subtopicSearch)
+          topicNameField.startsWith(subtopicSearch) ||
+          chapterName.includes(subtopicSearch)
         )
       );
 
