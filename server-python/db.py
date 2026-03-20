@@ -164,6 +164,22 @@ def get_schema(is_postgres=False):
         FOREIGN KEY (student_id) REFERENCES students(id),
         FOREIGN KEY (attempt_id) REFERENCES attempts(id)
     );
+    CREATE TABLE IF NOT EXISTS adaptive_plan_events (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        student_id    INTEGER NOT NULL,
+        quiz_code     TEXT,
+        topic         TEXT,
+        chapter       TEXT,
+        subtopics_json TEXT,
+        has_history   INTEGER DEFAULT 0,
+        fallback_used INTEGER DEFAULT 0,
+        mastery_overall REAL,
+        recent_accuracy REAL,
+        trend         TEXT,
+        plan_json     TEXT,
+        created_at    TEXT DEFAULT {now_fn},
+        FOREIGN KEY (student_id) REFERENCES students(id)
+    );
     CREATE TABLE IF NOT EXISTS admin_settings (
         setting_key   TEXT PRIMARY KEY,
         value_json    TEXT NOT NULL,
@@ -178,17 +194,76 @@ def get_schema(is_postgres=False):
         updated_by    TEXT,
         updated_at    TEXT DEFAULT {now_fn}
     );
-    CREATE TABLE IF NOT EXISTS grade_sync_queue (
-        id              {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
-        course_id       TEXT NOT NULL,
-        coursework_id   TEXT NOT NULL,
-        student_email   TEXT NOT NULL,
-        percentage      REAL NOT NULL,
-        status          TEXT DEFAULT 'pending',
-        retry_count     INTEGER DEFAULT 0,
-        error_message   TEXT,
-        created_at      TEXT DEFAULT {now_fn},
-        synced_at       TEXT
+    CREATE TABLE IF NOT EXISTS assignment_schedules (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        quiz_code     TEXT NOT NULL,
+        class_name    TEXT,
+        section_name  TEXT,
+        release_at    TEXT,
+        close_at      TEXT,
+        status        TEXT DEFAULT 'scheduled',
+        created_by    TEXT,
+        created_at    TEXT DEFAULT {now_fn},
+        updated_at    TEXT DEFAULT {now_fn},
+        FOREIGN KEY (quiz_code) REFERENCES quizzes(code)
+    );
+    CREATE TABLE IF NOT EXISTS generated_question_sets (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        quiz_code     TEXT,
+        attempt_id    INTEGER,
+        student_id    INTEGER,
+        questions_json TEXT NOT NULL,
+        status        TEXT DEFAULT 'pending',
+        reviewer      TEXT,
+        notes         TEXT,
+        created_at    TEXT DEFAULT {now_fn},
+        reviewed_at   TEXT,
+        FOREIGN KEY (attempt_id) REFERENCES attempts(id),
+        FOREIGN KEY (student_id) REFERENCES students(id)
+    );
+    CREATE TABLE IF NOT EXISTS manual_overrides (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        attempt_id    INTEGER NOT NULL,
+        override_type TEXT NOT NULL,
+        old_value_json TEXT,
+        new_value_json TEXT,
+        reason        TEXT,
+        actor         TEXT,
+        created_at    TEXT DEFAULT {now_fn},
+        FOREIGN KEY (attempt_id) REFERENCES attempts(id)
+    );
+    CREATE TABLE IF NOT EXISTS parent_contacts (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        student_id    INTEGER NOT NULL,
+        parent_name   TEXT NOT NULL,
+        email         TEXT,
+        phone         TEXT,
+        opt_in        INTEGER DEFAULT 1,
+        created_at    TEXT DEFAULT {now_fn},
+        FOREIGN KEY (student_id) REFERENCES students(id)
+    );
+    CREATE TABLE IF NOT EXISTS parent_alerts (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        student_id    INTEGER NOT NULL,
+        parent_contact_id INTEGER,
+        alert_type    TEXT NOT NULL,
+        message       TEXT NOT NULL,
+        status        TEXT DEFAULT 'queued',
+        created_at    TEXT DEFAULT {now_fn},
+        sent_at       TEXT,
+        FOREIGN KEY (student_id) REFERENCES students(id),
+        FOREIGN KEY (parent_contact_id) REFERENCES parent_contacts(id)
+    );
+    CREATE TABLE IF NOT EXISTS data_requests (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        student_id    INTEGER,
+        request_type  TEXT NOT NULL,
+        status        TEXT DEFAULT 'pending',
+        note          TEXT,
+        created_at    TEXT DEFAULT {now_fn},
+        resolved_at   TEXT,
+        resolved_by   TEXT,
+        FOREIGN KEY (student_id) REFERENCES students(id)
     );
     CREATE TABLE IF NOT EXISTS quest_definitions (
         id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
@@ -216,6 +291,39 @@ def get_schema(is_postgres=False):
         target_value  INTEGER DEFAULT 1,
         created_at    TEXT DEFAULT {now_fn},
         updated_at    TEXT DEFAULT {now_fn}
+    );
+    CREATE TABLE IF NOT EXISTS audit_logs (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        actor         TEXT,
+        action        TEXT NOT NULL,
+        target_type   TEXT,
+        target_id     TEXT,
+        reason        TEXT,
+        detail_json   TEXT,
+        created_at    TEXT DEFAULT {now_fn}
+    );
+    CREATE TABLE IF NOT EXISTS system_events (
+        id            {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        event_type    TEXT NOT NULL,
+        level         TEXT DEFAULT 'info',
+        message       TEXT,
+        path          TEXT,
+        status_code   INTEGER,
+        latency_ms    REAL,
+        detail_json   TEXT,
+        created_at    TEXT DEFAULT {now_fn}
+    );
+    CREATE TABLE IF NOT EXISTS grade_sync_queue (
+        id              {"SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"},
+        course_id       TEXT NOT NULL,
+        coursework_id   TEXT NOT NULL,
+        student_email   TEXT NOT NULL,
+        percentage      REAL NOT NULL,
+        status          TEXT DEFAULT 'pending',
+        retry_count     INTEGER DEFAULT 0,
+        error_message   TEXT,
+        created_at      TEXT DEFAULT {now_fn},
+        synced_at       TEXT
     );
     '''
     return schema
@@ -301,15 +409,79 @@ def init_db():
     
     db.commit()
     
-    # Simple seed for default users if empty
-    try:
-        if is_postgres:
-            db.execute("INSERT INTO teachers (username, password) SELECT 'admin', 'password123' WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE username = 'admin')")
+    # Seeding logic
+    def seed_data(sql_sqlite, sql_postgres=None, params=()):
+        if is_postgres and sql_postgres:
+            db.execute(sql_postgres, params)
         else:
-            db.execute("INSERT OR IGNORE INTO teachers (username, password) VALUES (?, ?)", ('admin', 'password123'))
+            db.execute(sql_sqlite, params)
+
+    try:
+        # Feature Flags
+        seed_data(
+            "INSERT OR IGNORE INTO feature_flags (flag_key, enabled, rollout_pct, config_json) VALUES (?, ?, ?, ?)",
+            "INSERT INTO feature_flags (flag_key, enabled, rollout_pct, config_json) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            ('adaptive_engine', 1, 100, '{"mode":"mastery"}')
+        )
+        seed_data(
+            "INSERT OR IGNORE INTO feature_flags (flag_key, enabled, rollout_pct, config_json) VALUES (?, ?, ?, ?)",
+            "INSERT INTO feature_flags (flag_key, enabled, rollout_pct, config_json) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            ('content_approval_required', 0, 100, '{"scope":"global"}')
+        )
+
+        # Admin Settings
+        seed_data(
+            "INSERT OR IGNORE INTO admin_settings (setting_key, value_json) VALUES (?, ?)",
+            "INSERT INTO admin_settings (setting_key, value_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            ('leaderboard_controls', '{"enabled":true,"anonymize":false,"class_only":false}')
+        )
+        seed_data(
+            "INSERT OR IGNORE INTO admin_settings (setting_key, value_json) VALUES (?, ?)",
+            "INSERT INTO admin_settings (setting_key, value_json) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            ('data_retention_days', '{"days":365}')
+        )
+
+        # Quests
+        quests = [
+            ('weekly_3_quizzes', 'Weekly Warmup', 'Complete 3 quizzes this week.', 'attempts_weekly', 3, 90, 'Core', 1),
+            ('weekly_accuracy_80', 'Accuracy Builder', 'Average 80%+ across at least 3 quizzes this week.', 'avg_pct_weekly', 80, 120, 'Core', 1),
+            ('weekly_high_score', 'Ace One', 'Score at least 90% once this week.', 'high_scores_weekly', 1, 70, 'Core', 1)
+        ]
+        for q in quests:
+            seed_data(
+                "INSERT OR IGNORE INTO quest_definitions (code, name, description, metric, target_value, reward_xp, season_label, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO quest_definitions (code, name, description, metric, target_value, reward_xp, season_label, active) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                q
+            )
+
+        # Badges
+        badges = [
+            ('first_quiz', 'First Steps', 'Complete your first quiz.', 'seed', 'Core', 1, 1),
+            ('streak_3', 'Consistent Learner', 'Maintain a 3-day study streak.', 'flame', 'Core', 1, 1),
+            ('streak_7', 'Streak Master', 'Maintain a 7-day study streak.', 'fire', 'Core', 1, 1),
+            ('perfect_100', 'Perfect Run', 'Score 100% on a quiz.', 'crown', 'Core', 1, 1),
+            ('quiz_10', 'Quiz Explorer', 'Complete 10 quizzes.', 'map', 'Core', 1, 1),
+            ('quiz_25', 'Math Marathoner', 'Complete 25 quizzes.', 'trophy', 'Core', 1, 1),
+            ('high_achiever', 'High Achiever', 'Score 90%+ on 5 quizzes.', 'star', 'Core', 1, 1),
+            ('level_5', 'Level Up', 'Reach level 5.', 'rocket', 'Core', 1, 1),
+            ('quest_champion', 'Quest Champion', 'Complete every weekly quest.', 'medal', 'Core', 1, 1)
+        ]
+        for b in badges:
+            seed_data(
+                "INSERT OR IGNORE INTO badge_definitions (code, name, description, icon, season_label, active, auto_award) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO badge_definitions (code, name, description, icon, season_label, active, auto_award) VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                b
+            )
+
+        # Default Teacher
+        seed_data(
+            "INSERT OR IGNORE INTO teachers (username, password) VALUES (?, ?)",
+            "INSERT INTO teachers (username, password) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            ('admin', 'password123')
+        )
         db.commit()
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"Error seeding database: {e}")
 
     return db
 
