@@ -28,6 +28,10 @@ def sanitize_name(name):
     return str(name or '').strip().replace('  ', ' ')[:40]
 
 
+def sanitize_email(email):
+    return str(email or '').strip().lower()[:120]
+
+
 def sanitize_pin(pin):
     return str(pin or '').strip()[:12]
 
@@ -120,9 +124,12 @@ def build_weekly_trend(history, weeks=8):
 @router.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
+    email = sanitize_email(data.get('email'))
     name = sanitize_name(data.get('name'))
     pin = sanitize_pin(data.get('pin'))
 
+    if not email or '@' not in email:
+        return jsonify({'error': 'A valid email address is required.'}), 400
     if not name or len(name) < 2:
         return jsonify({'error': 'Name must be at least 2 characters.'}), 400
     if not pin or len(pin) < 4:
@@ -130,13 +137,13 @@ def register():
 
     try:
         conn = db.get_db()
-        existing = conn.execute('SELECT id FROM students WHERE lower(name) = lower(?)', (name,)).fetchone()
+        existing = conn.execute('SELECT id FROM students WHERE lower(email) = ?', (email,)).fetchone()
         if existing:
-            return jsonify({'error': 'Student name is already taken. Please sign in.'}), 409
+            return jsonify({'error': 'Email is already registered. Please sign in.'}), 409
 
         cursor = conn.execute('''
-            INSERT INTO students (name, pin, last_login_at) VALUES (?, ?, datetime('now'))
-        ''', (name, pin))
+            INSERT INTO students (name, email, pin, last_login_at) VALUES (?, ?, ?, datetime('now'))
+        ''', (name, email, pin))
         conn.commit()
 
         student = get_student_by_id(conn, cursor.lastrowid)
@@ -148,20 +155,20 @@ def register():
 @router.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    name = sanitize_name(data.get('name'))
+    email = sanitize_email(data.get('email'))
     pin = sanitize_pin(data.get('pin'))
 
-    if not name or not pin:
-        return jsonify({'error': 'Name and PIN are required.'}), 400
+    if not email or not pin:
+        return jsonify({'error': 'Email and PIN are required.'}), 400
 
     try:
         conn = db.get_db()
         student = conn.execute('''
-            SELECT * FROM students WHERE lower(name) = lower(?) AND pin = ?
-        ''', (name, pin)).fetchone()
+            SELECT * FROM students WHERE lower(email) = ? AND pin = ?
+        ''', (email, pin)).fetchone()
 
         if not student:
-            return jsonify({'error': 'Invalid name or PIN.'}), 401
+            return jsonify({'error': 'Invalid email or PIN.'}), 401
 
         conn.execute('UPDATE students SET last_login_at = datetime(\'now\') WHERE id = ?', (student['id'],))
         conn.commit()

@@ -9,6 +9,7 @@ export default function StudentLogin() {
   const { isStudentAuthenticated, student, register, login, logout } = useStudent();
 
   const [mode, setMode] = useState('login');
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,8 +22,8 @@ export default function StudentLogin() {
     setError('');
     setLoading(true);
     try {
-      if (mode === 'register') await register(name.trim(), pin.trim());
-      else await login(name.trim(), pin.trim());
+      if (mode === 'register') await register(email.trim(), name.trim(), pin.trim());
+      else await login(email.trim(), pin.trim());
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Could not sign in.');
@@ -79,17 +80,32 @@ export default function StudentLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="font-syne font-600 text-sm text-ink block mb-2">Student Name</label>
+            <label className="font-syne font-600 text-sm text-ink block mb-2">Email Address</label>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={40}
-              placeholder="e.g. Maya Johnson"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={120}
+              placeholder="e.g. maya@school.edu"
               className="w-full p-4 rounded-xl border-2 border-border bg-card font-dm text-sm outline-none focus:border-accent2 transition-colors"
               required
             />
           </div>
+
+          {mode === 'register' && (
+            <div>
+              <label className="font-syne font-600 text-sm text-ink block mb-2">Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={40}
+                placeholder="e.g. Maya Johnson"
+                className="w-full p-4 rounded-xl border-2 border-border bg-card font-dm text-sm outline-none focus:border-accent2 transition-colors"
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label className="font-syne font-600 text-sm text-ink block mb-2">PIN</label>
@@ -123,4 +139,3 @@ export default function StudentLogin() {
     </div>
   );
 }
-
