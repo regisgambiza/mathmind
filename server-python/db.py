@@ -382,9 +382,14 @@ class DBWrapper:
             sql = re.sub(r'date\(([^)\',]+)\)', r'(\1)::DATE', sql, flags=re.IGNORECASE)
 
             # Add RETURNING id for INSERTs to support lastrowid
+            # but only if the table likely has an 'id' column (not admin_settings/feature_flags)
             is_insert = sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper()
             if is_insert:
-                sql += ' RETURNING id'
+                table_name_match = re.search(r'INSERT INTO\s+(\w+)', sql, flags=re.IGNORECASE)
+                if table_name_match:
+                    table_name = table_name_match.group(1).lower()
+                    if table_name not in ['admin_settings', 'feature_flags']:
+                        sql += ' RETURNING id'
 
             cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             try:
