@@ -61,17 +61,13 @@ npm run dev --prefix client
 
 Click the ⚙️ gear icon on the home screen to configure your AI provider:
 
-**OpenRouter** (recommended):
-1. Get a free API key at https://openrouter.ai
-2. Set provider to "OpenRouter", paste your key
-3. Default model: `openai/gpt-4o-mini`
+**OpenRouter Free Tier** (recommended):
+1. Get a free API key at https://openrouter.ai/keys
+2. Create `client/.env` file with: `VITE_OPENROUTER_API_KEY=your_key_here`
+3. Default model: `meta-llama/llama-3-8b-instruct:free`
+4. Browse more free models: https://openrouter.ai/models?max_price=0
 
-**Local Ollama**:
-1. Install Ollama: https://ollama.ai
-2. Pull a model: `ollama pull llama3`
-3. Set provider to "Ollama", set base URL to `http://localhost:11434`
-
-Settings are saved to `localStorage` automatically.
+Note: Free tier models have rate limits. For unlimited access, add credits to your OpenRouter account.
 
 ### Demo Mode
 

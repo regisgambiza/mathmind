@@ -5,52 +5,33 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 
 ## Model Configuration
 
-### Available Models (Ollama Local)
+### Available Models (OpenRouter Free Tier)
 ```json
 {
-  "local": {
-    "qwen3.5:27b": {
-      "strengths": ["code_generation", "reasoning", "math"],
-      "speed": "medium",
-      "quality": "very_high"
-    },
-    "gpt-oss": {
-      "strengths": ["general_chat", "code_review"],
-      "speed": "medium",
+  "openrouter": {
+    "meta-llama/llama-3-8b-instruct:free": {
+      "strengths": ["code_generation", "reasoning", "math", "general_chat"],
+      "speed": "fast",
       "quality": "high"
     },
-    "llama3.1:8b": {
+    "google/gemma-2-9b-it:free": {
       "strengths": ["text_generation", "summarization"],
       "speed": "fast",
-      "quality": "medium"
+      "quality": "high"
     },
-    "glm-4.7-flash": {
+    "microsoft/phi-3-mini-128k-instruct:free": {
       "strengths": ["fast_responses", "simple_tasks"],
       "speed": "very_fast",
       "quality": "medium"
+    },
+    "qwen/qwen-2-7b-instruct:free": {
+      "strengths": ["code_review", "math"],
+      "speed": "fast",
+      "quality": "high"
     }
   }
 }
 ```
-
-### Available Models (OpenRouter Cloud)
-```json
-{
-  "cloud": {
-    "qwen/qwen-2.5-7b-instruct": {
-      "strengths": ["math", "code_generation", "reasoning"],
-      "cost": "free",
-      "quality": "high"
-    },
-    "google/gemma-2-9b-it": {
-      "strengths": ["general_tasks", "fast_response"],
-      "cost": "free",
-      "quality": "medium"
-    },
-    "meta-llama/llama-3-8b-instruct": {
-      "strengths": ["text_generation", "reasoning"],
-      "cost": "free",
-      "quality": "high"
     }
   }
 }
@@ -62,63 +43,54 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 ```javascript
 const modelRouter = {
   // Code analysis and generation
-  "code_generation": "qwen3.5:27b",
-  "code_review": "qwen3.5:27b",
-  "debugging": "qwen3.5:27b",
-  "refactoring": "qwen3.5:27b",
+  "code_generation": "meta-llama/llama-3-8b-instruct:free",
+  "code_review": "meta-llama/llama-3-8b-instruct:free",
+  "debugging": "meta-llama/llama-3-8b-instruct:free",
+  "refactoring": "meta-llama/llama-3-8b-instruct:free",
 
   // Math and reasoning
-  "math_problem": "qwen3.5:27b",
-  "reasoning": "qwen3.5:27b",
-  "analysis": "qwen3.5:27b",
+  "math_problem": "meta-llama/llama-3-8b-instruct:free",
+  "reasoning": "meta-llama/llama-3-8b-instruct:free",
+  "analysis": "meta-llama/llama-3-8b-instruct:free",
 
   // Text generation
-  "text_generation": "llama3.1:8b",
-  "summarization": "llama3.1:8b",
-  "explanation": "llama3.1:8b",
+  "text_generation": "google/gemma-2-9b-it:free",
+  "summarization": "google/gemma-2-9b-it:free",
+  "explanation": "google/gemma-2-9b-it:free",
 
   // Quick tasks
-  "simple_query": "glm-4.7-flash",
-  "health_check": "glm-4.7-flash",
+  "simple_query": "microsoft/phi-3-mini-128k-instruct:free",
+  "health_check": "microsoft/phi-3-mini-128k-instruct:free",
 
   // Fallback
-  "default": "qwen3.5:27b"
+  "default": "meta-llama/llama-3-8b-instruct:free"
 };
 ```
 
 ### Provider Selection Logic
 ```javascript
 function selectProvider(taskType, config) {
-  // 1. Check if Ollama is available (preferred - free, local)
-  if (config.ollamaAvailable) {
-    return {
-      provider: 'ollama',
-      model: modelRouter[taskType] || modelRouter.default,
-      baseUrl: config.ollamaUrl || 'http://localhost:11434'
-    };
-  }
-  
-  // 2. Fallback to OpenRouter if API key available
+  // Use OpenRouter free tier
   if (config.openRouterKey) {
     return {
       provider: 'openrouter',
-      model: 'qwen/qwen-2.5-7b-instruct',
+      model: modelRouter[taskType] || modelRouter.default,
       apiKey: config.openRouterKey
     };
   }
-  
-  // 3. Error - no provider available
-  throw new Error('No AI provider available. Configure Ollama or OpenRouter.');
+
+  // Error - no provider available
+  throw new Error('No AI provider available. Configure OpenRouter API key.');
 }
 ```
 
 ### Fallback Logic
 ```javascript
 const fallbackChain = {
-  'qwen3.5:27b': ['gpt-oss', 'llama3.1:8b', 'glm-4.7-flash'],
-  'gpt-oss': ['qwen3.5:27b', 'llama3.1:8b', 'glm-4.7-flash'],
-  'llama3.1:8b': ['qwen3.5:27b', 'gpt-oss', 'glm-4.7-flash'],
-  'glm-4.7-flash': ['qwen3.5:27b', 'gpt-oss', 'llama3.1:8b']
+  'meta-llama/llama-3-8b-instruct:free': ['google/gemma-2-9b-it:free', 'microsoft/phi-3-mini-128k-instruct:free', 'qwen/qwen-2-7b-instruct:free'],
+  'google/gemma-2-9b-it:free': ['meta-llama/llama-3-8b-instruct:free', 'microsoft/phi-3-mini-128k-instruct:free', 'qwen/qwen-2-7b-instruct:free'],
+  'microsoft/phi-3-mini-128k-instruct:free': ['meta-llama/llama-3-8b-instruct:free', 'google/gemma-2-9b-it:free', 'qwen/qwen-2-7b-instruct:free'],
+  'qwen/qwen-2-7b-instruct:free': ['meta-llama/llama-3-8b-instruct:free', 'google/gemma-2-9b-it:free', 'microsoft/phi-3-mini-128k-instruct:free']
 };
 
 function getFallbackModel(currentModel, error) {
@@ -134,9 +106,8 @@ function getFallbackModel(currentModel, error) {
 ```json
 {
   "mathmind_regis_config": {
-    "provider": "ollama",
-    "model": "qwen3.5:27b",
-    "baseUrl": "http://localhost:11434",
+    "provider": "openrouter",
+    "model": "meta-llama/llama-3-8b-instruct:free",
     "apiKey": "",
     "fallbackEnabled": true,
     "maxRetries": 3
@@ -147,10 +118,17 @@ function getFallbackModel(currentModel, error) {
 ## Implementation Requirements
 
 1. **Always read provider from settings** - Never override user selection
-2. **Use deterministic routing** - Same task type → same model
-3. **Implement retry with fallback** - Try fallback model on failure
+2. **Use deterministic routing** - Same task type → same free model
+3. **Implement retry with fallback** - Try fallback free model on failure
 4. **Log model selection** - Debug which model was used and why
-5. **Health check on startup** - Verify selected model is available
+5. **Free tier awareness** - Respect rate limits, have fallback models ready
+
+## Best Practices
+
+1. **Use free models first** - All routed models are free tier (`:free` suffix)
+2. **Handle rate limits gracefully** - 429 errors mean try another free model
+3. **No local setup required** - Everything runs via OpenRouter cloud API
+4. **API key required** - Users need free OpenRouter account for API key
 
 ## Error Handling
 

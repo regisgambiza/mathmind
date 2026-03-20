@@ -1,7 +1,7 @@
 import { useRegis } from '../context/RegisContext';
 
 export default function RegisSettingsModal({ onClose }) {
-    const { model } = useRegis();
+    const { model, provider } = useRegis();
 
     return (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/40 backdrop-blur-sm" onClick={onClose}>
@@ -21,8 +21,8 @@ export default function RegisSettingsModal({ onClose }) {
                 {/* Info Box */}
                 <div className="mb-5 p-4 rounded-xl bg-accent/10 border border-accent/20">
                     <p className="font-dm text-xs text-ink leading-relaxed">
-                        <span className="font-syne font-700">🏠 Local AI (Ollama)</span> — Runs entirely on your machine.
-                        No API keys, no internet required, no rate limits.
+                        <span className="font-syne font-700">☁️ Cloud AI (OpenRouter Free)</span> — Free tier models via OpenRouter.
+                        No local setup required, internet connection needed.
                     </p>
                 </div>
 
@@ -38,14 +38,14 @@ export default function RegisSettingsModal({ onClose }) {
                                 {model}
                             </p>
                             <p className="font-dm text-xs text-muted leading-relaxed">
-                                Running locally via Ollama at http://localhost:11434
+                                Running via OpenRouter at https://openrouter.ai
                             </p>
                             <p className="font-dm text-xs text-muted leading-relaxed mt-2">
                                 <span className="font-syne font-700">To change models:</span>
                                 <br />
-                                1. Install a new model: <code className="bg-ink/20 px-1 rounded">ollama pull &lt;model-name&gt;</code>
+                                Update the model name in <code className="bg-ink/20 px-1 rounded">client/src/context/RegisContext.jsx</code>
                                 <br />
-                                2. Update the model name in <code className="bg-ink/20 px-1 rounded">client/src/context/RegisContext.jsx</code>
+                                Browse free models: <a href="https://openrouter.ai/models?max_price=0" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/models?max_price=0</a>
                             </p>
                         </div>
                     </div>
@@ -55,11 +55,14 @@ export default function RegisSettingsModal({ onClose }) {
                 <div className="mb-5 p-4 rounded-xl bg-paper border border-border">
                     <p className="font-syne font-700 text-sm text-ink mb-2">📦 First Time Setup</p>
                     <ol className="font-dm text-xs text-muted space-y-2 list-decimal list-inside">
-                        <li>Install Ollama from <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" className="text-accent underline">ollama.ai</a></li>
-                        <li>Run: <code className="bg-ink/20 px-1 rounded">ollama pull qwen3.5:27b</code></li>
-                        <li>Wait for download (~15 GB)</li>
+                        <li>Get a free API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/keys</a></li>
+                        <li>Create a <code className="bg-ink/20 px-1 rounded">.env</code> file in the <code className="bg-ink/20 px-1 rounded">client/</code> directory</li>
+                        <li>Add: <code className="bg-ink/20 px-1 rounded">VITE_OPENROUTER_API_KEY=your_key_here</code></li>
                         <li>Refresh this page</li>
                     </ol>
+                    <p className="font-dm text-xs text-muted mt-3">
+                        <span className="font-syne font-700">Note:</span> Free models may have rate limits. For unlimited access, add credits to your OpenRouter account.
+                    </p>
                 </div>
 
                 <button
