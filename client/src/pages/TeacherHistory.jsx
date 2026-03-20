@@ -692,7 +692,7 @@ export default function TeacherHistory() {
 
   // List View
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-4 md:space-y-6 animate-fadeUp">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4 md:space-y-6 animate-fadeUp">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-syne font-800 text-2xl md:text-3xl text-ink">📋 Activity History</h1>
@@ -717,7 +717,7 @@ export default function TeacherHistory() {
             Clear All
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <select
             value={filters.activity_type}
             onChange={(e) => handleFilterChange('activity_type', e.target.value)}
@@ -776,26 +776,26 @@ export default function TeacherHistory() {
           </button>
         </div>
       ) : (
-        <div className="bg-card border-2 border-border rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+        <div className="bg-card border-2 border-border rounded-2xl overflow-hidden shadow-sm overflow-x-auto scrollbar-hide">
+          <table className="w-full text-left border-collapse min-w-[1200px]">
             <thead>
               <tr className="bg-paper border-b-2 border-border">
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Code</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Type</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Topic</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Attempts</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Avg Score</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Completion</th>
-                <th className="px-4 py-3 font-syne font-800 text-[10px] text-muted uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Code</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Type</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Topic</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Attempts</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Avg Score</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest">Completion</th>
+                <th className="px-6 py-4 font-syne font-800 text-[10px] text-muted uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {quizzes.map((q) => (
                 <tr key={q.code} className="hover:bg-muted/5 transition-colors group">
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-5">
                     <span className="bg-accent/10 text-accent font-syne font-800 text-xs px-2 py-1 rounded-lg">{q.code}</span>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-5">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-syne font-700 ${
                       normalizeActivityType(q.activity_type) === 'topic_quiz' 
                         ? 'bg-accent2/15 text-accent2' 
@@ -804,19 +804,19 @@ export default function TeacherHistory() {
                       {activityLabel(q.activity_type)}
                     </span>
                   </td>
-                  <td className="px-4 py-4">
-                    <p className="font-syne font-700 text-sm text-ink">{q.topic}</p>
-                    <p className="text-[10px] text-muted font-dm">{formatDate(q.created_at)}</p>
+                  <td className="px-6 py-5 min-w-[400px]">
+                    <p className="font-syne font-700 text-sm text-ink leading-relaxed">{q.topic}</p>
+                    <p className="text-[10px] text-muted font-dm tracking-wider mt-1">{formatDate(q.created_at)}</p>
                   </td>
-                  <td className="px-4 py-4 font-dm text-sm text-ink">{q.attempt_count || 0}</td>
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-5 font-dm text-sm text-ink">{q.attempt_count || 0}</td>
+                  <td className="px-6 py-5">
                     <span className={`font-syne font-700 text-sm ${
                       q.avg_score >= 80 ? 'text-correct' :
                       q.avg_score >= 60 ? 'text-yellow-600' :
                       'text-wrong'
                     }`}>{q.avg_score || 0}%</span>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-2 bg-paper rounded-full overflow-hidden border border-border w-20">
                         <div
