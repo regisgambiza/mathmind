@@ -85,15 +85,13 @@ export function StudentProvider({ children }) {
     return account;
   }, [refreshProfile]);
 
-  const register = useCallback(async (email, name, pin) => {
-    const res = await api.post('/api/student/register', { email, name, pin });
-    return completeAuth(res.data);
-  }, [completeAuth]);
+  const register = useCallback(async () => {
+    throw new Error('Student registration requires Google sign-in.');
+  }, []);
 
-  const login = useCallback(async (email, pin) => {
-    const res = await api.post('/api/student/login', { email, pin });
-    return completeAuth(res.data);
-  }, [completeAuth]);
+  const login = useCallback(async () => {
+    throw new Error('Student login requires Google sign-in.');
+  }, []);
 
   const googleLogin = useCallback(async (credential, googleId) => {
     const res = await api.post('/api/student/google-login', { 

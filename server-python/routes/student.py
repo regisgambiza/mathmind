@@ -123,60 +123,14 @@ def build_weekly_trend(history, weeks=8):
 
 @router.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    email = sanitize_email(data.get('email'))
-    name = sanitize_name(data.get('name'))
-    pin = sanitize_pin(data.get('pin'))
-
-    if not email or '@' not in email:
-        return jsonify({'error': 'A valid email address is required.'}), 400
-    if not name or len(name) < 2:
-        return jsonify({'error': 'Name must be at least 2 characters.'}), 400
-    if not pin or len(pin) < 4:
-        return jsonify({'error': 'PIN must be at least 4 characters.'}), 400
-
-    try:
-        conn = db.get_db()
-        existing = conn.execute('SELECT id FROM students WHERE lower(email) = ?', (email,)).fetchone()
-        if existing:
-            return jsonify({'error': 'Email is already registered. Please sign in.'}), 409
-
-        cursor = conn.execute('''
-            INSERT INTO students (name, email, pin, last_login_at) VALUES (?, ?, ?, datetime('now'))
-        ''', (name, email, pin))
-        conn.commit()
-
-        student = get_student_by_id(conn, cursor.lastrowid)
-        return jsonify({'success': True, 'student': dict(student)})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    """PIN-based registration is disabled. Students use Google OAuth."""
+    return jsonify({'error': 'Student registration requires Google sign-in.'}), 400
 
 
 @router.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = sanitize_email(data.get('email'))
-    pin = sanitize_pin(data.get('pin'))
-
-    if not email or not pin:
-        return jsonify({'error': 'Email and PIN are required.'}), 400
-
-    try:
-        conn = db.get_db()
-        student = conn.execute('''
-            SELECT * FROM students WHERE lower(email) = ? AND pin = ?
-        ''', (email, pin)).fetchone()
-
-        if not student:
-            return jsonify({'error': 'Invalid email or PIN.'}), 401
-
-        conn.execute('UPDATE students SET last_login_at = datetime(\'now\') WHERE id = ?', (student['id'],))
-        conn.commit()
-
-        profile = get_student_by_id(conn, student['id'])
-        return jsonify({'success': True, 'student': dict(profile)})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    """PIN-based login is disabled. Students use Google OAuth."""
+    return jsonify({'error': 'Student login requires Google sign-in.'}), 400
 
 
 @router.route('/google-login', methods=['POST', 'OPTIONS'])
