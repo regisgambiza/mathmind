@@ -370,9 +370,22 @@ def validate_student_in_course(course_id, student_email):
         if 'error' in roster_result:
             continue
         
+        # Fetch the student's Google ID from MathMind database
+        student_record = conn.execute(
+            'SELECT google_id FROM students WHERE email = ?', (student_email,)
+        ).fetchone()
+        target_google_id = student_record['google_id'] if student_record else None
+
         roster = roster_result.get('roster', [])
         for student in roster:
-            if student['email'].lower() == student_email.lower():
+            if target_google_id and student['userId'] == target_google_id:
+                return {
+                    'valid': True,
+                    'userId': student['userId'],
+                    'name': student['name'],
+                    'email': student['email'] or student_email
+                }
+            elif student['email'] and student['email'].lower() == student_email.lower():
                 return {
                     'valid': True,
                     'userId': student['userId'],
@@ -394,8 +407,20 @@ def sync_grade(teacher_id, course_id, coursework_id, student_user_id, percentage
         return {'error': 'Teacher not connected to Google Classroom'}
     
     try:
-        # Calculate points earned
-        # First get the assignment to find max points
+        # First get the student's specific submission ID for this coursework
+        submissions_response = service.courses().courseWork().studentSubmissions().list(
+            courseId=course_id,
+            courseWorkId=coursework_id,
+            userId=student_user_id
+        ).execute()
+
+        submissions = submissions_response.get('studentSubmissions', [])
+        if not submissions:
+            return {'error': 'No submission found for this student'}
+            
+        submission_id = submissions[0]['id']
+
+        # Calculate points earned based on the assignment's max points
         assignment = service.courses().courseWork().get(
             courseId=course_id,
             id=coursework_id
@@ -406,15 +431,16 @@ def sync_grade(teacher_id, course_id, coursework_id, student_user_id, percentage
         
         # Submit grade
         submission = {
-            'assignedGrade': round(earned_points, 2)
+            'assignedGrade': round(earned_points, 2),
+            'draftGrade': round(earned_points, 2)
         }
         
         service.courses().courseWork().studentSubmissions().patch(
             courseId=course_id,
-            courseworkId=coursework_id,
-            id=student_user_id,
+            courseWorkId=coursework_id,
+            id=submission_id,
             body=submission,
-            updateMask='assignedGrade'
+            updateMask='assignedGrade,draftGrade'
         ).execute()
         
         return {'success': True, 'grade': earned_points}
@@ -470,8 +496,20 @@ def process_grade_sync_queue():
                 continue
             
             student_user_id = None
+            
+            # Fetch the student's Google ID from MathMind database
+            student_record = conn.execute(
+                'SELECT google_id FROM students WHERE email = ?', (item['student_email'],)
+            ).fetchone()
+            target_google_id = student_record['google_id'] if student_record else None
+
             for student in roster_result.get('roster', []):
-                if student['email'].lower() == item['student_email'].lower():
+                # Primary match via strict Google Account ID mapping (ignores email privacy restrictions)
+                if target_google_id and student['userId'] == target_google_id:
+                    student_user_id = student['userId']
+                    break
+                # Fallback to email match if available
+                elif student['email'] and item['student_email'] and student['email'].lower() == item['student_email'].lower():
                     student_user_id = student['userId']
                     break
             

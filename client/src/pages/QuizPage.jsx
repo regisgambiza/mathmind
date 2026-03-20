@@ -50,6 +50,7 @@ export default function QuizPage() {
   const { generateCompletion } = useRegis();
   const {
     currentQuestions,
+    setCurrentQuestions,
     studentName,
     attemptId,
     quizCode,

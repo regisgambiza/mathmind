@@ -414,6 +414,9 @@ def init_db():
     _ensure_column(db, 'generated_question_sets', 'attempt_id', 'INTEGER')
     _ensure_column(db, 'generated_question_sets', 'quiz_code', 'TEXT')
 
+    # Add missing column for student_quest_claims
+    _ensure_column(db, 'student_quest_claims', 'points_awarded', 'INTEGER DEFAULT 0')
+
     db.commit()
 
     return db

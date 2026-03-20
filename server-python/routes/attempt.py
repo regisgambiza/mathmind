@@ -4,6 +4,9 @@ import json
 from datetime import datetime
 from services.gamification import apply_gamification_for_attempt
 from services import classroom
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = Blueprint('attempt', __name__)
 
@@ -158,6 +161,7 @@ def start_attempt():
             'attempt_id': attempt_id,
             'student_name': resolved_student_name,
             'student_id': resolved_student_id,
+            'student_email': student_email,
             'started_at': datetime.utcnow().isoformat(),
             'is_active': True,
             'is_completed': False,
@@ -203,7 +207,7 @@ def complete_attempt(id):
 
         # Get quiz details for grade sync
         quiz = conn.execute('''
-            SELECT course_id, coursework_id, posted_to_classroom
+            SELECT code, course_id, coursework_id, posted_to_classroom
             FROM quizzes WHERE code = ?
         ''', (existing['quiz_code'],)).fetchone()
 
@@ -220,6 +224,7 @@ def complete_attempt(id):
         socketio.emit('student_completed', {
             'attempt_id': int(id),
             'student_name': existing['student_name'],
+            'student_email': student_email,
             'score': score,
             'total': total,
             'percentage': percentage,

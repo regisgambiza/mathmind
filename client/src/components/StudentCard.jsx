@@ -49,9 +49,14 @@ export default function StudentCard({ student, showDetails = false }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <p className="font-syne font-700 text-ink text-base truncate">{student_name}</p>
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <div className="min-w-0 flex-1">
+              <p className="font-syne font-700 text-ink text-base truncate">{student_name}</p>
+              {student.student_email && (
+                <p className="font-dm text-xs text-muted truncate mt-0.5">{student.student_email}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
               {hasManyViolations && (
                 <span className="font-syne font-700 text-xs bg-wrong/20 text-wrong px-2 py-1 rounded-full whitespace-nowrap">
                   ⚠️ {violationCount} violations

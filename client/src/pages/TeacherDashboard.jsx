@@ -141,10 +141,12 @@ export default function TeacherDashboard() {
   const addSimStudent = () => {
     const names = ['Amara', 'Liam', 'Zoe', 'Kai', 'Sofia', 'Omar', 'Priya', 'Elijah'];
     const name = `${names[Math.floor(Math.random() * names.length)]} ${Math.floor(Math.random() * 100)}`;
+    const email = `${name.replace(' ', '').toLowerCase()}@student.edu`;
     const totalQuestions = quizConfig?.count || 5;
     const fake = {
       attempt_id: Date.now(),
       student_name: name,
+      student_email: email,
       status: 'in_progress',
       score: null,
       total: totalQuestions,

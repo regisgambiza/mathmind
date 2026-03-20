@@ -94,9 +94,10 @@ def get_quiz_dashboard(code):
             return jsonify({'error': 'Quiz not found'}), 404
 
         students = conn.execute('''
-            SELECT a.id as attempt_id, a.student_name, a.status, a.score, a.total, a.percentage,
+            SELECT a.id as attempt_id, a.student_name, s.email as student_email, a.status, a.score, a.total, a.percentage,
                    a.time_taken_s, a.started_at, a.completed_at, COUNT(v.id) as violations
             FROM attempts a
+            LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
             WHERE a.quiz_code = ?
             GROUP BY a.id
@@ -144,9 +145,10 @@ def export_csv(code):
         activity_type = quiz['activity_type'] if quiz else 'class_activity'
 
         students = conn.execute('''
-            SELECT a.student_name, a.score, a.total, a.percentage, a.time_taken_s,
+            SELECT a.student_name, s.email as student_email, a.score, a.total, a.percentage, a.time_taken_s,
                    a.status, a.started_at, a.completed_at, COUNT(v.id) as violations
             FROM attempts a
+            LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
             WHERE a.quiz_code = ?
             GROUP BY a.id
@@ -154,9 +156,9 @@ def export_csv(code):
         ''', (code,)).fetchall()
 
         # Build CSV
-        lines = ['Activity Type,Student Name,Score,Total,Percentage,Time (s),Violations,Status,Started At,Completed At']
+        lines = ['Activity Type,Student Name,Student Email,Score,Total,Percentage,Time (s),Violations,Status,Started At,Completed At']
         for s in students:
-            lines.append(f'"{activity_type}","{s["student_name"]}",{s["score"] or ""},{s["total"] or ""},{s["percentage"] or ""},{s["time_taken_s"] or ""},{s["violations"]},"{s["status"]}","{s["started_at"] or ""}","{s["completed_at"] or ""}"')
+            lines.append(f'"{activity_type}","{s["student_name"]}","{s["student_email"] or ""}","{s["score"] or ""}","{s["total"] or ""}","{s["percentage"] or ""}","{s["time_taken_s"] or ""}","{s["violations"]}","{s["status"]}","{s["started_at"] or ""}","{s["completed_at"] or ""}"')
 
         csv_content = '\n'.join(lines)
 
@@ -328,6 +330,7 @@ def get_live(code):
                 a.id as attempt_id,
                 a.student_id,
                 a.student_name,
+                s.email as student_email,
                 a.status,
                 a.score,
                 a.total,
@@ -341,6 +344,7 @@ def get_live(code):
                 (SELECT GROUP_CONCAT(json_object('left_at', left_at, 'returned_at', returned_at, 'away_seconds', away_seconds))
                  FROM violations WHERE attempt_id = a.id) as violations_json
             FROM attempts a
+            LEFT JOIN students s ON a.student_id = s.id
             WHERE a.quiz_code = ?
             ORDER BY
                 CASE a.status
@@ -367,6 +371,7 @@ def get_live(code):
                 'attempt_id': a['attempt_id'],
                 'student_id': a['student_id'],
                 'student_name': a['student_name'],
+                'student_email': a['student_email'],
                 'status': a['status'],
                 'score': a['score'],
                 'total': a['total'],
