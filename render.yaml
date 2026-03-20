@@ -21,9 +21,9 @@ services:
         generateValue: true
 
   # Frontend: React/Vite (Static Site)
-  - type: static_site
+  - type: web
     name: mathmind-frontend
-    env: node
+    env: static
     rootDirectory: client
     buildCommand: npm install && npm run build
     publishPath: dist
