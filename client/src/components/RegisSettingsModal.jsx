@@ -61,7 +61,9 @@ export default function RegisSettingsModal({ onClose }) {
                         <li>Refresh this page</li>
                     </ol>
                     <p className="font-dm text-xs text-muted mt-3">
-                        <span className="font-syne font-700">Note:</span> Free models may have rate limits. For unlimited access, add credits to your OpenRouter account.
+                        <span className="font-syne font-700">Model:</span> openrouter/free (auto-selects from available free models)
+                        <br/>
+                        <span className="font-syne font-700">Includes:</span> Llama 3, Gemma 2, Phi 3, Qwen, and more
                     </p>
                 </div>
 

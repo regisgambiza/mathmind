@@ -64,10 +64,10 @@ Click the ⚙️ gear icon on the home screen to configure your AI provider:
 **OpenRouter Free Tier** (recommended):
 1. Get a free API key at https://openrouter.ai/keys
 2. Create `client/.env` file with: `VITE_OPENROUTER_API_KEY=your_key_here`
-3. Default model: `meta-llama/llama-3-8b-instruct:free`
-4. Browse more free models: https://openrouter.ai/models?max_price=0
+3. Default model: `openrouter/free` (auto-selects from all available free models)
+4. Browse free models: https://openrouter.ai/models?max_price=0
 
-Note: Free tier models have rate limits. For unlimited access, add credits to your OpenRouter account.
+Note: `openrouter/free` automatically routes to the best available free model (Llama, Gemma, Phi, Qwen, etc.). Free tier has rate limits.
 
 ### Demo Mode
 

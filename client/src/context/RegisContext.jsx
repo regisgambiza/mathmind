@@ -3,9 +3,10 @@ import { createContext, useContext, useCallback } from 'react';
 const RegisContext = createContext(null);
 
 // OpenRouter free models - hardcoded
-// Using free tier models: https://openrouter.ai/models?max_price=0
+// Using openrouter/free to auto-select from available free models
+// https://openrouter.ai/models?max_price=0
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const OPENROUTER_MODEL = 'meta-llama/llama-3-8b-instruct:free';
+const OPENROUTER_MODEL = 'openrouter/free';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {

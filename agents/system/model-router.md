@@ -9,29 +9,22 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 ```json
 {
   "openrouter": {
-    "meta-llama/llama-3-8b-instruct:free": {
-      "strengths": ["code_generation", "reasoning", "math", "general_chat"],
+    "openrouter/free": {
+      "strengths": ["auto_select", "all_free_models", "dynamic_routing"],
       "speed": "fast",
-      "quality": "high"
-    },
-    "google/gemma-2-9b-it:free": {
-      "strengths": ["text_generation", "summarization"],
-      "speed": "fast",
-      "quality": "high"
-    },
-    "microsoft/phi-3-mini-128k-instruct:free": {
-      "strengths": ["fast_responses", "simple_tasks"],
-      "speed": "very_fast",
-      "quality": "medium"
-    },
-    "qwen/qwen-2-7b-instruct:free": {
-      "strengths": ["code_review", "math"],
-      "speed": "fast",
-      "quality": "high"
+      "quality": "high",
+      "description": "Automatically selects from available free models"
     }
   }
 }
 ```
+
+**Note**: `openrouter/free` automatically routes to available free models including:
+- Meta Llama 3 series
+- Google Gemma 2 series
+- Microsoft Phi 3 series
+- Qwen 2 series
+- And other free tier models
     }
   }
 }
@@ -42,28 +35,28 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 ### Task Type → Model Mapping
 ```javascript
 const modelRouter = {
-  // Code analysis and generation
-  "code_generation": "meta-llama/llama-3-8b-instruct:free",
-  "code_review": "meta-llama/llama-3-8b-instruct:free",
-  "debugging": "meta-llama/llama-3-8b-instruct:free",
-  "refactoring": "meta-llama/llama-3-8b-instruct:free",
+  // All tasks use openrouter/free for automatic model selection
+  "code_generation": "openrouter/free",
+  "code_review": "openrouter/free",
+  "debugging": "openrouter/free",
+  "refactoring": "openrouter/free",
 
   // Math and reasoning
-  "math_problem": "meta-llama/llama-3-8b-instruct:free",
-  "reasoning": "meta-llama/llama-3-8b-instruct:free",
-  "analysis": "meta-llama/llama-3-8b-instruct:free",
+  "math_problem": "openrouter/free",
+  "reasoning": "openrouter/free",
+  "analysis": "openrouter/free",
 
   // Text generation
-  "text_generation": "google/gemma-2-9b-it:free",
-  "summarization": "google/gemma-2-9b-it:free",
-  "explanation": "google/gemma-2-9b-it:free",
+  "text_generation": "openrouter/free",
+  "summarization": "openrouter/free",
+  "explanation": "openrouter/free",
 
   // Quick tasks
-  "simple_query": "microsoft/phi-3-mini-128k-instruct:free",
-  "health_check": "microsoft/phi-3-mini-128k-instruct:free",
+  "simple_query": "openrouter/free",
+  "health_check": "openrouter/free",
 
   // Fallback
-  "default": "meta-llama/llama-3-8b-instruct:free"
+  "default": "openrouter/free"
 };
 ```
 
@@ -86,11 +79,10 @@ function selectProvider(taskType, config) {
 
 ### Fallback Logic
 ```javascript
+// openrouter/free handles fallback automatically
+// No need for manual fallback chain
 const fallbackChain = {
-  'meta-llama/llama-3-8b-instruct:free': ['google/gemma-2-9b-it:free', 'microsoft/phi-3-mini-128k-instruct:free', 'qwen/qwen-2-7b-instruct:free'],
-  'google/gemma-2-9b-it:free': ['meta-llama/llama-3-8b-instruct:free', 'microsoft/phi-3-mini-128k-instruct:free', 'qwen/qwen-2-7b-instruct:free'],
-  'microsoft/phi-3-mini-128k-instruct:free': ['meta-llama/llama-3-8b-instruct:free', 'google/gemma-2-9b-it:free', 'qwen/qwen-2-7b-instruct:free'],
-  'qwen/qwen-2-7b-instruct:free': ['meta-llama/llama-3-8b-instruct:free', 'google/gemma-2-9b-it:free', 'microsoft/phi-3-mini-128k-instruct:free']
+  'openrouter/free': [] // OpenRouter handles this internally
 };
 
 function getFallbackModel(currentModel, error) {
@@ -107,7 +99,7 @@ function getFallbackModel(currentModel, error) {
 {
   "mathmind_regis_config": {
     "provider": "openrouter",
-    "model": "meta-llama/llama-3-8b-instruct:free",
+    "model": "openrouter/free",
     "apiKey": "",
     "fallbackEnabled": true,
     "maxRetries": 3
