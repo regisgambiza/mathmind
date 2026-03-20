@@ -29,14 +29,18 @@ logger.info("MathMind Python Server Starting...")
 logger.info(f"Secret key configured: {bool(os.environ.get('SECRET_KEY'))}")
 logger.info(f"Database path: {db.DB_PATH}")
 
-# CORS configuration - specify exact origins (wildcard doesn't work with supports_credentials)
+# CORS configuration
+cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
+allowed_origins = [o.strip() for o in cors_origins_str.split(',')]
+is_wildcard_cors = '*' in allowed_origins
+
 CORS(app,
-     resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+     resources={r"/*": {"origins": "*" if is_wildcard_cors else allowed_origins}},
      supports_credentials=True,
      methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"])
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*" if is_wildcard_cors else allowed_origins, async_mode='eventlet', logger=True, engineio_logger=True)
 
 # Store socketio instance in app for route access
 app.socketio = socketio
@@ -235,7 +239,7 @@ def log_request():
 def after_request(response):
     # CORS headers
     origin = request.headers.get('Origin')
-    if origin in ['http://localhost:5173', 'http://127.0.0.1:5173']:
+    if origin and (is_wildcard_cors or origin in allowed_origins):
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
