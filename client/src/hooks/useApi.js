@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    if (envUrl.startsWith('http')) return envUrl;
+    return `https://${envUrl}`;
+  }
+  return `http://${window.location.hostname}:5000`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000`,
+  baseURL: getBaseURL(),
   timeout: 30000, // 30 second timeout for AI requests
 });
 
