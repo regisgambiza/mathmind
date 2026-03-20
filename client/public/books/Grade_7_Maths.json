@@ -1,0 +1,2479 @@
+{
+  "book": "Cambridge Lower Secondary Maths Stage 7",
+  "grade_level": 7,
+  "curriculum": "Cambridge Lower Secondary Mathematics",
+  "total_chapters": 27,
+  "usage_notes": {
+    "description": "This JSON contains structured curriculum data for Grade 7 maths. Use this context to generate relevant questions aligned with the textbook.",
+    "ai_guidance": "When generating questions, match the terminology, difficulty, and problem styles described in each topic. Use common_mistakes to create distractors for multiple choice questions."
+  },
+  "chapters": [
+    {
+      "chapter": "Chapter 1: Factors",
+      "topics": [
+        {
+          "name": "1.1 Divisibility tests",
+          "book1_pages": "2-4",
+          "key_concepts": [
+            "divisibility rules",
+            "factors",
+            "multiples"
+          ],
+          "subskills": [
+            "apply divisibility rules",
+            "test large numbers"
+          ],
+          "example_problems": [
+            "Is 3426 divisible by 9?",
+            "Which numbers are divisible by 6?"
+          ],
+          "common_mistakes": [
+            "confusing rules",
+            "ignoring last digits"
+          ],
+          "terminology": [
+            "factor",
+            "divisible",
+            "multiple"
+          ],
+          "real_life_applications": [
+            "error checking",
+            "grouping items"
+          ],
+          "learning_objectives": [
+            "Understand and apply divisibility rules for 2, 3, 4, 5, 6, 9, 10",
+            "Test large numbers using divisibility rules"
+          ],
+          "prerequisite_skills": [
+            "Basic multiplication and division",
+            "Times tables up to 10"
+          ],
+          "question_style_notes": "Use numbers up to 4 digits. Focus on applying rules rather than memorization."
+        },
+        {
+          "name": "1.2 Lowest common multiple and highest common factor",
+          "book1_pages": "5-9",
+          "key_concepts": [
+            "LCM",
+            "HCF"
+          ],
+          "subskills": [
+            "find LCM",
+            "find HCF"
+          ],
+          "example_problems": [
+            "Find LCM of 6 and 10",
+            "Find HCF of 18 and 27"
+          ],
+          "common_mistakes": [
+            "mixing LCM and HCF"
+          ],
+          "terminology": [
+            "LCM",
+            "HCF"
+          ],
+          "real_life_applications": [
+            "scheduling",
+            "sharing equally"
+          ],
+          "learning_objectives": [
+            "Find the LCM of two numbers by listing or using prime factors",
+            "Find the HCF of two numbers by listing factors or using prime factorization"
+          ],
+          "prerequisite_skills": [
+            "Understanding of factors and multiples",
+            "Basic multiplication"
+          ],
+          "question_style_notes": "Use numbers up to 100. Include real-life contexts like scheduling events or grouping items."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 2: 2D and 3D shapes",
+      "topics": [
+        {
+          "name": "2.1 Congruency",
+          "book1_pages": "10-15",
+          "key_concepts": [
+            "congruent shapes"
+          ],
+          "subskills": [
+            "match corresponding sides"
+          ],
+          "example_problems": [
+            "Find missing angle"
+          ],
+          "common_mistakes": [
+            "wrong matching"
+          ],
+          "terminology": [
+            "congruent"
+          ],
+          "real_life_applications": [
+            "design"
+          ],
+          "learning_objectives": [
+            "Understand and apply congruent shapes",
+            "Be able to match corresponding sides"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "2.2 Circles",
+          "book1_pages": "16-17",
+          "key_concepts": [
+            "radius",
+            "diameter",
+            "tangent"
+          ],
+          "subskills": [
+            "label circle parts"
+          ],
+          "example_problems": [
+            "Identify diameter"
+          ],
+          "common_mistakes": [
+            "radius vs diameter"
+          ],
+          "terminology": [
+            "circumference"
+          ],
+          "real_life_applications": [
+            "wheels"
+          ],
+          "learning_objectives": [
+            "Understand and apply radius",
+            "Understand and apply diameter",
+            "Be able to label circle parts"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "2.3 3D shapes",
+          "book1_pages": "18-23",
+          "key_concepts": [
+            "faces",
+            "edges",
+            "vertices"
+          ],
+          "subskills": [
+            "count properties"
+          ],
+          "example_problems": [
+            "Name shape"
+          ],
+          "common_mistakes": [
+            "wrong counts"
+          ],
+          "terminology": [
+            "prism",
+            "pyramid"
+          ],
+          "real_life_applications": [
+            "architecture"
+          ],
+          "learning_objectives": [
+            "Understand and apply faces",
+            "Understand and apply edges",
+            "Be able to count properties"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 3: Collecting data",
+      "topics": [
+        {
+          "name": "3.1 Types of data",
+          "book1_pages": "25-26",
+          "key_concepts": [
+            "categorical",
+            "discrete",
+            "continuous"
+          ],
+          "subskills": [
+            "classify data"
+          ],
+          "example_problems": [
+            "Classify height"
+          ],
+          "common_mistakes": [
+            "confusion types"
+          ],
+          "terminology": [
+            "data"
+          ],
+          "real_life_applications": [
+            "surveys"
+          ],
+          "learning_objectives": [
+            "Understand and apply categorical",
+            "Understand and apply discrete",
+            "Be able to classify data"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "3.2 Data collection methods",
+          "book1_pages": "26-28",
+          "key_concepts": [
+            "questionnaires"
+          ],
+          "subskills": [
+            "design survey"
+          ],
+          "example_problems": [
+            "Write question"
+          ],
+          "common_mistakes": [
+            "bias"
+          ],
+          "terminology": [
+            "bias"
+          ],
+          "real_life_applications": [
+            "research"
+          ],
+          "learning_objectives": [
+            "Understand and apply questionnaires",
+            "Be able to design survey"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "3.3 Choosing a sample",
+          "book1_pages": "29-31",
+          "key_concepts": [
+            "population",
+            "sample"
+          ],
+          "subskills": [
+            "choose sample"
+          ],
+          "example_problems": [
+            "Identify population"
+          ],
+          "common_mistakes": [
+            "small sample"
+          ],
+          "terminology": [
+            "random"
+          ],
+          "real_life_applications": [
+            "polling"
+          ],
+          "learning_objectives": [
+            "Understand and apply population",
+            "Understand and apply sample",
+            "Be able to choose sample"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 4: Negative numbers and indices",
+      "topics": [
+        {
+          "name": "4.1 Adding and subtracting integers",
+          "book1_pages": "35-37",
+          "key_concepts": [
+            "integers"
+          ],
+          "subskills": [
+            "add negatives"
+          ],
+          "example_problems": [
+            "-3 + 5"
+          ],
+          "common_mistakes": [
+            "sign errors"
+          ],
+          "terminology": [
+            "integer"
+          ],
+          "real_life_applications": [
+            "temperature"
+          ],
+          "learning_objectives": [
+            "Understand and apply integers",
+            "Be able to add negatives"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "4.2 Multiplying and dividing integers",
+          "book1_pages": "38-39",
+          "key_concepts": [
+            "sign rules"
+          ],
+          "subskills": [
+            "multiply negatives"
+          ],
+          "example_problems": [
+            "-2 × -4"
+          ],
+          "common_mistakes": [
+            "sign confusion"
+          ],
+          "terminology": [
+            "product"
+          ],
+          "real_life_applications": [
+            "finance"
+          ],
+          "learning_objectives": [
+            "Understand and apply sign rules",
+            "Be able to multiply negatives"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "4.3 Estimating",
+          "book1_pages": "40-41",
+          "key_concepts": [
+            "approximation"
+          ],
+          "subskills": [
+            "estimate"
+          ],
+          "example_problems": [
+            "49×21"
+          ],
+          "common_mistakes": [
+            "bad rounding"
+          ],
+          "terminology": [
+            "estimate"
+          ],
+          "real_life_applications": [
+            "quick maths"
+          ],
+          "learning_objectives": [
+            "Understand and apply approximation",
+            "Be able to estimate"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "4.4 Indices",
+          "book1_pages": "42-44",
+          "key_concepts": [
+            "powers"
+          ],
+          "subskills": [
+            "evaluate indices"
+          ],
+          "example_problems": [
+            "3^3"
+          ],
+          "common_mistakes": [
+            "multiplication confusion"
+          ],
+          "terminology": [
+            "index"
+          ],
+          "real_life_applications": [
+            "science"
+          ],
+          "learning_objectives": [
+            "Understand and apply powers",
+            "Be able to evaluate indices"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 5: Expressions",
+      "topics": [
+        {
+          "name": "5.1 Letters for numbers",
+          "book1_pages": "49-50",
+          "key_concepts": [
+            "variables"
+          ],
+          "subskills": [
+            "interpret algebra"
+          ],
+          "example_problems": [
+            "x+3"
+          ],
+          "common_mistakes": [
+            "treating letters wrongly"
+          ],
+          "terminology": [
+            "variable"
+          ],
+          "real_life_applications": [
+            "formulas"
+          ],
+          "learning_objectives": [
+            "Understand and apply variables",
+            "Be able to interpret algebra"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "5.2 Forming expressions",
+          "book1_pages": "51-53",
+          "key_concepts": [
+            "expressions"
+          ],
+          "subskills": [
+            "translate words"
+          ],
+          "example_problems": [
+            "twice x"
+          ],
+          "common_mistakes": [
+            "translation errors"
+          ],
+          "terminology": [
+            "expression"
+          ],
+          "real_life_applications": [
+            "problem solving"
+          ],
+          "learning_objectives": [
+            "Understand and apply expressions",
+            "Be able to translate words"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "5.3 Order of algebraic operations and substitution",
+          "book1_pages": "54-57",
+          "key_concepts": [
+            "BIDMAS"
+          ],
+          "subskills": [
+            "evaluate"
+          ],
+          "example_problems": [
+            "2x+3"
+          ],
+          "common_mistakes": [
+            "wrong order"
+          ],
+          "terminology": [
+            "substitution"
+          ],
+          "real_life_applications": [
+            "calculations"
+          ],
+          "learning_objectives": [
+            "Understand and apply BIDMAS",
+            "Be able to evaluate"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 6: Symmetry",
+      "topics": [
+        {
+          "name": "6.1 Polygons",
+          "book1_pages": "59-61",
+          "key_concepts": [
+            "polygons"
+          ],
+          "subskills": [
+            "identify shapes"
+          ],
+          "example_problems": [
+            "name shape"
+          ],
+          "common_mistakes": [
+            "count sides"
+          ],
+          "terminology": [
+            "polygon"
+          ],
+          "real_life_applications": [
+            "design"
+          ],
+          "learning_objectives": [
+            "Understand and apply polygons",
+            "Be able to identify shapes"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "6.2 Line and rotation symmetry",
+          "book1_pages": "62-65",
+          "key_concepts": [
+            "symmetry"
+          ],
+          "subskills": [
+            "identify symmetry"
+          ],
+          "example_problems": [
+            "lines of symmetry"
+          ],
+          "common_mistakes": [
+            "miscount"
+          ],
+          "terminology": [
+            "rotation"
+          ],
+          "real_life_applications": [
+            "logos"
+          ],
+          "learning_objectives": [
+            "Understand and apply symmetry",
+            "Be able to identify symmetry"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 7: Rounding and decimals",
+      "topics": [
+        {
+          "name": "7.1 Multiplying and dividing by powers of 10",
+          "book1_pages": "68-69",
+          "key_concepts": [
+            "powers of 10"
+          ],
+          "subskills": [
+            "shift decimals"
+          ],
+          "example_problems": [
+            "×10"
+          ],
+          "common_mistakes": [
+            "wrong direction"
+          ],
+          "terminology": [
+            "decimal"
+          ],
+          "real_life_applications": [
+            "money"
+          ],
+          "learning_objectives": [
+            "Understand and apply powers of 10",
+            "Be able to shift decimals"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "7.2 Rounding to decimal places",
+          "book1_pages": "70-71",
+          "key_concepts": [
+            "rounding"
+          ],
+          "subskills": [
+            "round numbers"
+          ],
+          "example_problems": [
+            "round 3.456"
+          ],
+          "common_mistakes": [
+            "place value errors"
+          ],
+          "terminology": [
+            "decimal places"
+          ],
+          "real_life_applications": [
+            "estimates"
+          ],
+          "learning_objectives": [
+            "Understand and apply rounding",
+            "Be able to round numbers"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "7.3 Adding and subtracting decimals",
+          "book1_pages": "72-74",
+          "key_concepts": [
+            "decimal operations"
+          ],
+          "subskills": [
+            "align decimals"
+          ],
+          "example_problems": [
+            "3.2+4.56"
+          ],
+          "common_mistakes": [
+            "misalignment"
+          ],
+          "terminology": [
+            "decimal"
+          ],
+          "real_life_applications": [
+            "money"
+          ],
+          "learning_objectives": [
+            "Understand and apply decimal operations",
+            "Be able to align decimals"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "7.4 Multiplying and dividing decimals",
+          "book1_pages": "75-78",
+          "key_concepts": [
+            "decimal multiplication"
+          ],
+          "subskills": [
+            "calculate"
+          ],
+          "example_problems": [
+            "2.5×0.4"
+          ],
+          "common_mistakes": [
+            "decimal placement"
+          ],
+          "terminology": [
+            "product"
+          ],
+          "real_life_applications": [
+            "shopping"
+          ],
+          "learning_objectives": [
+            "Understand and apply decimal multiplication",
+            "Be able to calculate"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 8: Presenting and interpreting data I",
+      "topics": [
+        {
+          "name": "8.1 Two-way tables",
+          "book1_pages": "84-86",
+          "key_concepts": [
+            "tables"
+          ],
+          "subskills": [
+            "read tables"
+          ],
+          "example_problems": [
+            "fill table"
+          ],
+          "common_mistakes": [
+            "totals wrong"
+          ],
+          "terminology": [
+            "frequency"
+          ],
+          "real_life_applications": [
+            "surveys"
+          ],
+          "learning_objectives": [
+            "Understand and apply tables",
+            "Be able to read tables"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "8.2 Dual and compound bar charts",
+          "book1_pages": "87-90",
+          "key_concepts": [
+            "bar charts"
+          ],
+          "subskills": [
+            "draw charts"
+          ],
+          "example_problems": [
+            "compare data"
+          ],
+          "common_mistakes": [
+            "scales"
+          ],
+          "terminology": [
+            "bar chart"
+          ],
+          "real_life_applications": [
+            "reports"
+          ],
+          "learning_objectives": [
+            "Understand and apply bar charts",
+            "Be able to draw charts"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "8.3 Frequency diagrams",
+          "book1_pages": "91-95",
+          "key_concepts": [
+            "frequency"
+          ],
+          "subskills": [
+            "plot data"
+          ],
+          "example_problems": [
+            "frequency graph"
+          ],
+          "common_mistakes": [
+            "grouping"
+          ],
+          "terminology": [
+            "class interval"
+          ],
+          "real_life_applications": [
+            "statistics"
+          ],
+          "learning_objectives": [
+            "Understand and apply frequency",
+            "Be able to plot data"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 9: Fractions",
+      "topics": [
+        {
+          "name": "9.1 Adding mixed numbers",
+          "book1_pages": "100-101",
+          "key_concepts": [
+            "fractions"
+          ],
+          "subskills": [
+            "add mixed"
+          ],
+          "example_problems": [
+            "1 1/2 + 2 1/3"
+          ],
+          "common_mistakes": [
+            "denominators"
+          ],
+          "terminology": [
+            "mixed number"
+          ],
+          "real_life_applications": [
+            "recipes"
+          ],
+          "learning_objectives": [
+            "Understand and apply fractions",
+            "Be able to add mixed"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "9.2 Multiplying and dividing fractions",
+          "book1_pages": "102-105",
+          "key_concepts": [
+            "fraction operations"
+          ],
+          "subskills": [
+            "multiply fractions"
+          ],
+          "example_problems": [
+            "2/3 × 4/5"
+          ],
+          "common_mistakes": [
+            "not simplifying"
+          ],
+          "terminology": [
+            "numerator"
+          ],
+          "real_life_applications": [
+            "sharing"
+          ],
+          "learning_objectives": [
+            "Understand and apply fraction operations",
+            "Be able to multiply fractions"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 10: Manipulating expressions",
+      "topics": [
+        {
+          "name": "10.1 Simplifying expressions",
+          "book1_pages": "108-111",
+          "key_concepts": [
+            "like terms"
+          ],
+          "subskills": [
+            "combine terms"
+          ],
+          "example_problems": [
+            "2x+3x"
+          ],
+          "common_mistakes": [
+            "not combining"
+          ],
+          "terminology": [
+            "term"
+          ],
+          "real_life_applications": [
+            "algebra"
+          ],
+          "learning_objectives": [
+            "Understand and apply like terms",
+            "Be able to combine terms"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "10.2 Expanding brackets",
+          "book1_pages": "112-115",
+          "key_concepts": [
+            "distributive law"
+          ],
+          "subskills": [
+            "expand"
+          ],
+          "example_problems": [
+            "3(x+2)"
+          ],
+          "common_mistakes": [
+            "missing term"
+          ],
+          "terminology": [
+            "expand"
+          ],
+          "real_life_applications": [
+            "formulas"
+          ],
+          "learning_objectives": [
+            "Understand and apply distributive law",
+            "Be able to expand"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 11: Angles",
+      "topics": [
+        {
+          "name": "11.1 Angles around a point",
+          "book1_pages": "116-118",
+          "key_concepts": [
+            "360°"
+          ],
+          "subskills": [
+            "calculate angles"
+          ],
+          "example_problems": [
+            "find missing angle"
+          ],
+          "common_mistakes": [
+            "sum errors"
+          ],
+          "terminology": [
+            "angle"
+          ],
+          "real_life_applications": [
+            "geometry"
+          ],
+          "learning_objectives": [
+            "Understand and apply 360°",
+            "Be able to calculate angles"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "11.2 Angles in quadrilateral",
+          "book1_pages": "119-123",
+          "key_concepts": [
+            "360° sum"
+          ],
+          "subskills": [
+            "solve angles"
+          ],
+          "example_problems": [
+            "quadrilateral"
+          ],
+          "common_mistakes": [
+            "sum wrong"
+          ],
+          "terminology": [
+            "quadrilateral"
+          ],
+          "real_life_applications": [
+            "design"
+          ],
+          "learning_objectives": [
+            "Understand and apply 360° sum",
+            "Be able to solve angles"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "11.3 Angles and parallel lines",
+          "book1_pages": "124-129",
+          "key_concepts": [
+            "alternate angles"
+          ],
+          "subskills": [
+            "identify angles"
+          ],
+          "example_problems": [
+            "parallel lines"
+          ],
+          "common_mistakes": [
+            "angle rules"
+          ],
+          "terminology": [
+            "parallel"
+          ],
+          "real_life_applications": [
+            "construction"
+          ],
+          "learning_objectives": [
+            "Understand and apply alternate angles",
+            "Be able to identify angles"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 12: Measures of average and spread",
+      "topics": [
+        {
+          "name": "12.1 Mean, median, mode and range",
+          "book1_pages": "132-135",
+          "key_concepts": [
+            "mean",
+            "median",
+            "mode",
+            "range"
+          ],
+          "subskills": [
+            "calculate averages",
+            "compare data"
+          ],
+          "example_problems": [
+            "Find mean of 4,6,8"
+          ],
+          "common_mistakes": [
+            "wrong total",
+            "median position errors"
+          ],
+          "terminology": [
+            "average",
+            "range"
+          ],
+          "real_life_applications": [
+            "test scores"
+          ],
+          "learning_objectives": [
+            "Understand and apply mean",
+            "Understand and apply median",
+            "Be able to calculate averages",
+            "Be able to compare data"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "12.2 Averages from frequency tables",
+          "book1_pages": "136-139",
+          "key_concepts": [
+            "frequency"
+          ],
+          "subskills": [
+            "calculate mean with frequency"
+          ],
+          "example_problems": [
+            "mean from table"
+          ],
+          "common_mistakes": [
+            "ignoring frequency"
+          ],
+          "terminology": [
+            "frequency table"
+          ],
+          "real_life_applications": [
+            "data analysis"
+          ],
+          "learning_objectives": [
+            "Understand and apply frequency",
+            "Be able to calculate mean with frequency"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 13: Calculations",
+      "topics": [
+        {
+          "name": "13.1 Order of operations",
+          "book1_pages": "145-146",
+          "key_concepts": [
+            "BIDMAS"
+          ],
+          "subskills": [
+            "apply order rules"
+          ],
+          "example_problems": [
+            "2+3×4"
+          ],
+          "common_mistakes": [
+            "wrong order"
+          ],
+          "terminology": [
+            "operation"
+          ],
+          "real_life_applications": [
+            "calculations"
+          ],
+          "learning_objectives": [
+            "Understand and apply BIDMAS",
+            "Be able to apply order rules"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "13.2 Simplifying calculations",
+          "book1_pages": "147-150",
+          "key_concepts": [
+            "efficient methods"
+          ],
+          "subskills": [
+            "mental maths"
+          ],
+          "example_problems": [
+            "25×16"
+          ],
+          "common_mistakes": [
+            "overcomplicating"
+          ],
+          "terminology": [
+            "simplify"
+          ],
+          "real_life_applications": [
+            "shopping"
+          ],
+          "learning_objectives": [
+            "Understand and apply efficient methods",
+            "Be able to mental maths"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 14: Functions and formulae",
+      "topics": [
+        {
+          "name": "14.1 Functions and mappings",
+          "book1_pages": "153-156",
+          "key_concepts": [
+            "function",
+            "mapping"
+          ],
+          "subskills": [
+            "input-output"
+          ],
+          "example_problems": [
+            "f(x)=x+2"
+          ],
+          "common_mistakes": [
+            "wrong substitution"
+          ],
+          "terminology": [
+            "function"
+          ],
+          "real_life_applications": [
+            "machines"
+          ],
+          "learning_objectives": [
+            "Understand and apply function",
+            "Understand and apply mapping",
+            "Be able to input-output"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "14.2 Constructing and using formulae",
+          "book1_pages": "157-160",
+          "key_concepts": [
+            "formula"
+          ],
+          "subskills": [
+            "rearrange and use"
+          ],
+          "example_problems": [
+            "area formula"
+          ],
+          "common_mistakes": [
+            "substitution errors"
+          ],
+          "terminology": [
+            "formula"
+          ],
+          "real_life_applications": [
+            "science"
+          ],
+          "learning_objectives": [
+            "Understand and apply formula",
+            "Be able to rearrange and use"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 15: Area and volume",
+      "topics": [
+        {
+          "name": "15.1 Converting units of area",
+          "book1_pages": "162-163",
+          "key_concepts": [
+            "unit conversion"
+          ],
+          "subskills": [
+            "convert units"
+          ],
+          "example_problems": [
+            "cm² to m²"
+          ],
+          "common_mistakes": [
+            "not squaring"
+          ],
+          "terminology": [
+            "area"
+          ],
+          "real_life_applications": [
+            "land"
+          ],
+          "learning_objectives": [
+            "Understand and apply unit conversion",
+            "Be able to convert units"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "15.2 Area of triangles",
+          "book1_pages": "164-167",
+          "key_concepts": [
+            "triangle area"
+          ],
+          "subskills": [
+            "use formula"
+          ],
+          "example_problems": [
+            "½bh"
+          ],
+          "common_mistakes": [
+            "missing ½"
+          ],
+          "terminology": [
+            "base",
+            "height"
+          ],
+          "real_life_applications": [
+            "construction"
+          ],
+          "learning_objectives": [
+            "Understand and apply triangle area",
+            "Be able to use formula"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "15.3 Volume of cuboids",
+          "book1_pages": "168-170",
+          "key_concepts": [
+            "volume"
+          ],
+          "subskills": [
+            "l×w×h"
+          ],
+          "example_problems": [
+            "find volume"
+          ],
+          "common_mistakes": [
+            "wrong units"
+          ],
+          "terminology": [
+            "volume"
+          ],
+          "real_life_applications": [
+            "packing"
+          ],
+          "learning_objectives": [
+            "Understand and apply volume",
+            "Be able to l×w×h"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "15.4 Surface area of cuboids",
+          "book1_pages": "171-174",
+          "key_concepts": [
+            "surface area"
+          ],
+          "subskills": [
+            "calculate faces"
+          ],
+          "example_problems": [
+            "surface area"
+          ],
+          "common_mistakes": [
+            "missing faces"
+          ],
+          "terminology": [
+            "surface"
+          ],
+          "real_life_applications": [
+            "packaging"
+          ],
+          "learning_objectives": [
+            "Understand and apply surface area",
+            "Be able to calculate faces"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 16: Fractions, decimals and percentages",
+      "topics": [
+        {
+          "name": "16.1 Equivalent forms 1",
+          "book1_pages": "178-179",
+          "key_concepts": [
+            "equivalence"
+          ],
+          "subskills": [
+            "convert forms"
+          ],
+          "example_problems": [
+            "½=0.5"
+          ],
+          "common_mistakes": [
+            "wrong conversions"
+          ],
+          "terminology": [
+            "percentage"
+          ],
+          "real_life_applications": [
+            "money"
+          ],
+          "learning_objectives": [
+            "Understand and apply equivalence",
+            "Be able to convert forms"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "16.2 Equivalent forms 2",
+          "book1_pages": "180-181",
+          "key_concepts": [
+            "fractions-decimals"
+          ],
+          "subskills": [
+            "convert"
+          ],
+          "example_problems": [
+            "25%"
+          ],
+          "common_mistakes": [
+            "decimal errors"
+          ],
+          "terminology": [
+            "decimal"
+          ],
+          "real_life_applications": [
+            "discounts"
+          ],
+          "learning_objectives": [
+            "Understand and apply fractions-decimals",
+            "Be able to convert"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "16.3 Comparing decimals and fractions",
+          "book1_pages": "182-185",
+          "key_concepts": [
+            "comparison"
+          ],
+          "subskills": [
+            "order values"
+          ],
+          "example_problems": [
+            "0.75 vs 3/4"
+          ],
+          "common_mistakes": [
+            "place value"
+          ],
+          "terminology": [
+            "compare"
+          ],
+          "real_life_applications": [
+            "shopping"
+          ],
+          "learning_objectives": [
+            "Understand and apply comparison",
+            "Be able to order values"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 17: Probability I",
+      "topics": [
+        {
+          "name": "17.1 Language of probability",
+          "book1_pages": "187-189",
+          "key_concepts": [
+            "probability scale"
+          ],
+          "subskills": [
+            "describe likelihood"
+          ],
+          "example_problems": [
+            "likely/unlikely"
+          ],
+          "common_mistakes": [
+            "misinterpret scale"
+          ],
+          "terminology": [
+            "probability"
+          ],
+          "real_life_applications": [
+            "games"
+          ],
+          "learning_objectives": [
+            "Understand and apply probability scale",
+            "Be able to describe likelihood"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "17.2 Listing outcomes",
+          "book1_pages": "190-191",
+          "key_concepts": [
+            "sample space"
+          ],
+          "subskills": [
+            "list outcomes"
+          ],
+          "example_problems": [
+            "coin toss"
+          ],
+          "common_mistakes": [
+            "missing outcomes"
+          ],
+          "terminology": [
+            "outcome"
+          ],
+          "real_life_applications": [
+            "games"
+          ],
+          "learning_objectives": [
+            "Understand and apply sample space",
+            "Be able to list outcomes"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "17.3 Calculating probabilities",
+          "book1_pages": "192-195",
+          "key_concepts": [
+            "probability formula"
+          ],
+          "subskills": [
+            "calculate probability"
+          ],
+          "example_problems": [
+            "dice probability"
+          ],
+          "common_mistakes": [
+            "incorrect totals"
+          ],
+          "terminology": [
+            "event"
+          ],
+          "real_life_applications": [
+            "risk"
+          ],
+          "learning_objectives": [
+            "Understand and apply probability formula",
+            "Be able to calculate probability"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 18: Transformations",
+      "topics": [
+        {
+          "name": "18.1 Translations",
+          "book1_pages": "199-201",
+          "key_concepts": [
+            "translation"
+          ],
+          "subskills": [
+            "move shapes"
+          ],
+          "example_problems": [
+            "translate point"
+          ],
+          "common_mistakes": [
+            "direction errors"
+          ],
+          "terminology": [
+            "vector"
+          ],
+          "real_life_applications": [
+            "graphics"
+          ],
+          "learning_objectives": [
+            "Understand and apply translation",
+            "Be able to move shapes"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "18.2 Reflections and rotations",
+          "book1_pages": "202-206",
+          "key_concepts": [
+            "reflection",
+            "rotation"
+          ],
+          "subskills": [
+            "transform shapes"
+          ],
+          "example_problems": [
+            "reflect shape"
+          ],
+          "common_mistakes": [
+            "mirror errors"
+          ],
+          "terminology": [
+            "rotation"
+          ],
+          "real_life_applications": [
+            "design"
+          ],
+          "learning_objectives": [
+            "Understand and apply reflection",
+            "Understand and apply rotation",
+            "Be able to transform shapes"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "18.3 Enlargements",
+          "book1_pages": "207-210",
+          "key_concepts": [
+            "scale factor"
+          ],
+          "subskills": [
+            "enlarge shapes"
+          ],
+          "example_problems": [
+            "scale 2"
+          ],
+          "common_mistakes": [
+            "wrong scale"
+          ],
+          "terminology": [
+            "enlargement"
+          ],
+          "real_life_applications": [
+            "maps"
+          ],
+          "learning_objectives": [
+            "Understand and apply scale factor",
+            "Be able to enlarge shapes"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 19: Percentages",
+      "topics": [
+        {
+          "name": "19.1 Percentages of quantities",
+          "book1_pages": "214-217",
+          "key_concepts": [
+            "percent"
+          ],
+          "subskills": [
+            "find percentage"
+          ],
+          "example_problems": [
+            "20% of 50"
+          ],
+          "common_mistakes": [
+            "division errors"
+          ],
+          "terminology": [
+            "percent"
+          ],
+          "real_life_applications": [
+            "discounts"
+          ],
+          "learning_objectives": [
+            "Understand and apply percent",
+            "Be able to find percentage"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "19.2 One quantity as a percentage of another",
+          "book1_pages": "218-221",
+          "key_concepts": [
+            "percentage comparison"
+          ],
+          "subskills": [
+            "calculate percentage"
+          ],
+          "example_problems": [
+            "part/whole"
+          ],
+          "common_mistakes": [
+            "wrong base"
+          ],
+          "terminology": [
+            "ratio"
+          ],
+          "real_life_applications": [
+            "statistics"
+          ],
+          "learning_objectives": [
+            "Understand and apply percentage comparison",
+            "Be able to calculate percentage"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 20: Presenting and interpreting data II",
+      "topics": [
+        {
+          "name": "20.1 Waffle diagrams and pie charts",
+          "book1_pages": "223-228",
+          "key_concepts": [
+            "pie chart"
+          ],
+          "subskills": [
+            "draw pie charts"
+          ],
+          "example_problems": [
+            "angles"
+          ],
+          "common_mistakes": [
+            "angle errors"
+          ],
+          "terminology": [
+            "sector"
+          ],
+          "real_life_applications": [
+            "reports"
+          ],
+          "learning_objectives": [
+            "Understand and apply pie chart",
+            "Be able to draw pie charts"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "20.2 Infographics",
+          "book1_pages": "229-233",
+          "key_concepts": [
+            "data presentation"
+          ],
+          "subskills": [
+            "interpret visuals"
+          ],
+          "example_problems": [
+            "read infographic"
+          ],
+          "common_mistakes": [
+            "misreading"
+          ],
+          "terminology": [
+            "infographic"
+          ],
+          "real_life_applications": [
+            "media"
+          ],
+          "learning_objectives": [
+            "Understand and apply data presentation",
+            "Be able to interpret visuals"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "20.3 Line graphs",
+          "book1_pages": "234-238",
+          "key_concepts": [
+            "line graph"
+          ],
+          "subskills": [
+            "plot graph"
+          ],
+          "example_problems": [
+            "plot points"
+          ],
+          "common_mistakes": [
+            "scale issues"
+          ],
+          "terminology": [
+            "axis"
+          ],
+          "real_life_applications": [
+            "trends"
+          ],
+          "learning_objectives": [
+            "Understand and apply line graph",
+            "Be able to plot graph"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "20.4 Scatter graphs",
+          "book1_pages": "239-243",
+          "key_concepts": [
+            "correlation"
+          ],
+          "subskills": [
+            "interpret scatter"
+          ],
+          "example_problems": [
+            "positive correlation"
+          ],
+          "common_mistakes": [
+            "wrong interpretation"
+          ],
+          "terminology": [
+            "correlation"
+          ],
+          "real_life_applications": [
+            "research"
+          ],
+          "learning_objectives": [
+            "Understand and apply correlation",
+            "Be able to interpret scatter"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 21: Equations and inequalities",
+      "topics": [
+        {
+          "name": "21.1 Forming and solving equations",
+          "book1_pages": "249-251",
+          "key_concepts": [
+            "equations"
+          ],
+          "subskills": [
+            "solve equations"
+          ],
+          "example_problems": [
+            "2x+3=7"
+          ],
+          "common_mistakes": [
+            "inverse errors"
+          ],
+          "terminology": [
+            "equation"
+          ],
+          "real_life_applications": [
+            "problems"
+          ],
+          "learning_objectives": [
+            "Understand and apply equations",
+            "Be able to solve equations"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "21.2 Inequalities",
+          "book1_pages": "252-255",
+          "key_concepts": [
+            "inequality"
+          ],
+          "subskills": [
+            "solve inequalities"
+          ],
+          "example_problems": [
+            "x>3"
+          ],
+          "common_mistakes": [
+            "sign errors"
+          ],
+          "terminology": [
+            "inequality"
+          ],
+          "real_life_applications": [
+            "limits"
+          ],
+          "learning_objectives": [
+            "Understand and apply inequality",
+            "Be able to solve inequalities"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 22: Ratio and proportion",
+      "topics": [
+        {
+          "name": "22.1 Simplifying ratios",
+          "book1_pages": "258-260",
+          "key_concepts": [
+            "ratio"
+          ],
+          "subskills": [
+            "simplify ratios"
+          ],
+          "example_problems": [
+            "6:9"
+          ],
+          "common_mistakes": [
+            "not simplifying"
+          ],
+          "terminology": [
+            "ratio"
+          ],
+          "real_life_applications": [
+            "recipes"
+          ],
+          "learning_objectives": [
+            "Understand and apply ratio",
+            "Be able to simplify ratios"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "22.2 Dividing in a ratio",
+          "book1_pages": "261-262",
+          "key_concepts": [
+            "sharing"
+          ],
+          "subskills": [
+            "divide ratio"
+          ],
+          "example_problems": [
+            "split money"
+          ],
+          "common_mistakes": [
+            "wrong parts"
+          ],
+          "terminology": [
+            "proportion"
+          ],
+          "real_life_applications": [
+            "finance"
+          ],
+          "learning_objectives": [
+            "Understand and apply sharing",
+            "Be able to divide ratio"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "22.3 Unitary method",
+          "book1_pages": "263-265",
+          "key_concepts": [
+            "unitary"
+          ],
+          "subskills": [
+            "find unit value"
+          ],
+          "example_problems": [
+            "cost per item"
+          ],
+          "common_mistakes": [
+            "wrong division"
+          ],
+          "terminology": [
+            "unit rate"
+          ],
+          "real_life_applications": [
+            "shopping"
+          ],
+          "learning_objectives": [
+            "Understand and apply unitary",
+            "Be able to find unit value"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 23: Probability II",
+      "topics": [
+        {
+          "name": "23.1 Probability from experiments",
+          "book1_pages": "268-272",
+          "key_concepts": [
+            "experimental probability"
+          ],
+          "subskills": [
+            "calculate probability"
+          ],
+          "example_problems": [
+            "frequency"
+          ],
+          "common_mistakes": [
+            "small sample bias"
+          ],
+          "terminology": [
+            "experiment"
+          ],
+          "real_life_applications": [
+            "testing"
+          ],
+          "learning_objectives": [
+            "Understand and apply experimental probability",
+            "Be able to calculate probability"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 24: Sequences",
+      "topics": [
+        {
+          "name": "24.1 Generating sequences",
+          "book1_pages": "275-276",
+          "key_concepts": [
+            "sequence"
+          ],
+          "subskills": [
+            "generate terms"
+          ],
+          "example_problems": [
+            "add pattern"
+          ],
+          "common_mistakes": [
+            "pattern errors"
+          ],
+          "terminology": [
+            "term"
+          ],
+          "real_life_applications": [
+            "patterns"
+          ],
+          "learning_objectives": [
+            "Understand and apply sequence",
+            "Be able to generate terms"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "24.2 Spatial patterns",
+          "book1_pages": "277-279",
+          "key_concepts": [
+            "patterns"
+          ],
+          "subskills": [
+            "visual sequences"
+          ],
+          "example_problems": [
+            "shapes"
+          ],
+          "common_mistakes": [
+            "miscount"
+          ],
+          "terminology": [
+            "pattern"
+          ],
+          "real_life_applications": [
+            "design"
+          ],
+          "learning_objectives": [
+            "Understand and apply patterns",
+            "Be able to visual sequences"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "24.3 Position-to-term rules",
+          "book1_pages": "280-283",
+          "key_concepts": [
+            "nth term"
+          ],
+          "subskills": [
+            "find formula"
+          ],
+          "example_problems": [
+            "nth term"
+          ],
+          "common_mistakes": [
+            "wrong rule"
+          ],
+          "terminology": [
+            "nth term"
+          ],
+          "real_life_applications": [
+            "prediction"
+          ],
+          "learning_objectives": [
+            "Understand and apply nth term",
+            "Be able to find formula"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 25: Accurate drawing",
+      "topics": [
+        {
+          "name": "25.1 Construction of lines",
+          "book1_pages": "287-289",
+          "key_concepts": [
+            "construction"
+          ],
+          "subskills": [
+            "draw lines"
+          ],
+          "example_problems": [
+            "perpendicular"
+          ],
+          "common_mistakes": [
+            "accuracy"
+          ],
+          "terminology": [
+            "construction"
+          ],
+          "real_life_applications": [
+            "engineering"
+          ],
+          "learning_objectives": [
+            "Understand and apply construction",
+            "Be able to draw lines"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "25.2 Scale drawings",
+          "book1_pages": "290-293",
+          "key_concepts": [
+            "scale"
+          ],
+          "subskills": [
+            "draw to scale"
+          ],
+          "example_problems": [
+            "map scale"
+          ],
+          "common_mistakes": [
+            "scale errors"
+          ],
+          "terminology": [
+            "scale"
+          ],
+          "real_life_applications": [
+            "maps"
+          ],
+          "learning_objectives": [
+            "Understand and apply scale",
+            "Be able to draw to scale"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "25.3 Plans and elevations",
+          "book1_pages": "294-297",
+          "key_concepts": [
+            "views"
+          ],
+          "subskills": [
+            "draw plans"
+          ],
+          "example_problems": [
+            "front view"
+          ],
+          "common_mistakes": [
+            "wrong view"
+          ],
+          "terminology": [
+            "elevation"
+          ],
+          "real_life_applications": [
+            "architecture"
+          ],
+          "learning_objectives": [
+            "Understand and apply views",
+            "Be able to draw plans"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 26: Thinking statistically",
+      "topics": [
+        {
+          "name": "26.1 Choosing graphs",
+          "book1_pages": "303-305",
+          "key_concepts": [
+            "data display"
+          ],
+          "subskills": [
+            "select graphs"
+          ],
+          "example_problems": [
+            "best graph"
+          ],
+          "common_mistakes": [
+            "wrong graph"
+          ],
+          "terminology": [
+            "graph"
+          ],
+          "real_life_applications": [
+            "analysis"
+          ],
+          "learning_objectives": [
+            "Understand and apply data display",
+            "Be able to select graphs"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "26.2 Choosing averages",
+          "book1_pages": "306-309",
+          "key_concepts": [
+            "mean vs median"
+          ],
+          "subskills": [
+            "choose measure"
+          ],
+          "example_problems": [
+            "best average"
+          ],
+          "common_mistakes": [
+            "wrong choice"
+          ],
+          "terminology": [
+            "average"
+          ],
+          "real_life_applications": [
+            "statistics"
+          ],
+          "learning_objectives": [
+            "Understand and apply mean vs median",
+            "Be able to choose measure"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "26.3 Project",
+          "book1_pages": "310-312",
+          "key_concepts": [
+            "investigation"
+          ],
+          "subskills": [
+            "apply stats"
+          ],
+          "example_problems": [
+            "project"
+          ],
+          "common_mistakes": [
+            "weak analysis"
+          ],
+          "terminology": [
+            "investigation"
+          ],
+          "real_life_applications": [
+            "research"
+          ],
+          "learning_objectives": [
+            "Understand and apply investigation",
+            "Be able to apply stats"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    },
+    {
+      "chapter": "Chapter 27: Relationships and graphs",
+      "topics": [
+        {
+          "name": "27.1 Linear relationships",
+          "book1_pages": "314-317",
+          "key_concepts": [
+            "linear"
+          ],
+          "subskills": [
+            "identify patterns"
+          ],
+          "example_problems": [
+            "y=mx+c"
+          ],
+          "common_mistakes": [
+            "slope errors"
+          ],
+          "terminology": [
+            "gradient"
+          ],
+          "real_life_applications": [
+            "trends"
+          ],
+          "learning_objectives": [
+            "Understand and apply linear",
+            "Be able to identify patterns"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "27.2 Graphs of linear functions",
+          "book1_pages": "318-321",
+          "key_concepts": [
+            "graphs"
+          ],
+          "subskills": [
+            "plot lines"
+          ],
+          "example_problems": [
+            "plot graph"
+          ],
+          "common_mistakes": [
+            "scale errors"
+          ],
+          "terminology": [
+            "axis"
+          ],
+          "real_life_applications": [
+            "data"
+          ],
+          "learning_objectives": [
+            "Understand and apply graphs",
+            "Be able to plot lines"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        },
+        {
+          "name": "27.3 Graphs in real-life contexts",
+          "book1_pages": "322-325",
+          "key_concepts": [
+            "interpret graphs"
+          ],
+          "subskills": [
+            "read graphs"
+          ],
+          "example_problems": [
+            "distance-time"
+          ],
+          "common_mistakes": [
+            "misreading"
+          ],
+          "terminology": [
+            "graph"
+          ],
+          "real_life_applications": [
+            "motion"
+          ],
+          "learning_objectives": [
+            "Understand and apply interpret graphs",
+            "Be able to read graphs"
+          ],
+          "prerequisite_skills": [
+            "Basic numeracy skills",
+            "Understanding of related concepts from previous chapters"
+          ],
+          "question_style_notes": "Generate questions that test understanding of key concepts. Use age-appropriate language."
+        }
+      ]
+    }
+  ]
+}

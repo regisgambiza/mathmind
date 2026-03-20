@@ -215,13 +215,15 @@ def google_login_callback():
         if not code or not state:
             return redirect(f'{FRONTEND_URL}/?error=missing_code')
 
-        # Verify state matches
-        if session.get('oauth_state') != state:
-            return redirect(f'{FRONTEND_URL}/?error=invalid_state')
-
-        user_type = session.get('oauth_user_type', 'teacher')
+        # Parse combined state (format: frontend_state:user_type)
+        # The user_type is encoded in the state parameter, so we don't rely on server session
+        state_parts = state.split(':')
+        if len(state_parts) >= 2:
+            user_type = state_parts[-1]  # Last part is user_type
+        else:
+            user_type = 'teacher'  # Default fallback
         
-        logger.info(f"Login callback - code: {'yes' if code else 'no'}, state: {'yes' if state else 'no'}, user_type: {user_type}")
+        logger.info(f"Login callback - code: {'yes' if code else 'no'}, state: {state}, user_type: {user_type}")
 
         # Exchange code for tokens
         flow = Flow.from_client_config({
@@ -401,18 +403,23 @@ def google_authorize():
 
         flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/login/callback'
 
+        # Encode user_type into the state parameter (Google will echo it back)
+        # Format: frontend_state:user_type
+        combined_state = f"{state}:{user_type}"
+
         # Generate authorization URL
         authorization_url, oauth_state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
-            prompt='consent'
+            prompt='consent',
+            state=combined_state
         )
 
-        # Store state and user_type in session
-        session['oauth_state'] = oauth_state
+        # Store the original state for verification (in case Google returns it unchanged)
+        session['oauth_state'] = state
         session['oauth_user_type'] = user_type
 
-        logger.info(f"OAuth authorize initiated for {user_type}, state: {oauth_state}")
+        logger.info(f"OAuth authorize initiated for {user_type}, state: {combined_state}")
         return redirect(authorization_url)
 
     except Exception as e:

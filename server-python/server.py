@@ -18,6 +18,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'mathmind-secret-key')
+# Session cookie configuration for CORS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow JS access for debugging
 app.url_map.strict_slashes = False
 
 logger.info("=" * 60)

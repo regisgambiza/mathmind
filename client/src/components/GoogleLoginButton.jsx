@@ -27,7 +27,8 @@ export default function GoogleLoginButton({
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_user_type', user_type);
       
-      const oauthUrl = `${import.meta.env.VITE_API_URL}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
       window.location.href = oauthUrl;
       return;
     }
@@ -40,7 +41,8 @@ export default function GoogleLoginButton({
           const state = Math.random().toString(36).substring(2);
           sessionStorage.setItem('oauth_state', state);
           sessionStorage.setItem('oauth_user_type', 'student');
-          const oauthUrl = `${import.meta.env.VITE_API_URL}/api/auth/google/authorize?user_type=student&state=${state}`;
+          const apiUrl = import.meta.env.VITE_API_URL || '';
+          const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=student&state=${state}`;
           window.location.href = oauthUrl;
         }
       });
@@ -49,7 +51,8 @@ export default function GoogleLoginButton({
       const state = Math.random().toString(36).substring(2);
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_user_type', user_type);
-      const oauthUrl = `${import.meta.env.VITE_API_URL}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
       window.location.href = oauthUrl;
     }
   };
