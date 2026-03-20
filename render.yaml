@@ -17,6 +17,8 @@ services:
         value: "*" # Update with your Firebase/Render frontend URL later
       - key: GOOGLE_CLIENT_ID
         sync: false # Set in Render Dashboard
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # Set in Render Dashboard
       - key: SECRET_KEY
         generateValue: true
       - key: BACKEND_URL
