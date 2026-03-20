@@ -23,10 +23,9 @@ services:
   # Frontend: React/Vite (Static Site)
   - type: web
     name: mathmind-frontend
-    env: static
+    runtime: static
     rootDirectory: client
     buildCommand: npm install && npm run build
-    publishPath: dist
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
