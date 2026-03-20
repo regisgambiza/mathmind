@@ -19,6 +19,10 @@ services:
         sync: false # Set in Render Dashboard
       - key: SECRET_KEY
         generateValue: true
+      - key: BACKEND_URL
+        value: https://mathmind-backend.onrender.com
+      - key: FRONTEND_URL
+        value: https://mathmind-frontend.onrender.com
 
   # Frontend: React/Vite (Static Site)
   - type: web

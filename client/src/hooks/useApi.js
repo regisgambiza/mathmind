@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
+export const getBaseURL = () => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
     if (envUrl.startsWith('http')) return envUrl;

@@ -1,5 +1,5 @@
-import React from 'react';
 import Button from './Button';
+import { getBaseURL } from '../hooks/useApi';
 
 /**
  * Google Login Button Component
@@ -27,7 +27,7 @@ export default function GoogleLoginButton({
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_user_type', user_type);
       
-      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const apiUrl = getBaseURL();
       const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
       window.location.href = oauthUrl;
       return;
@@ -41,7 +41,7 @@ export default function GoogleLoginButton({
           const state = Math.random().toString(36).substring(2);
           sessionStorage.setItem('oauth_state', state);
           sessionStorage.setItem('oauth_user_type', 'student');
-          const apiUrl = import.meta.env.VITE_API_URL || '';
+          const apiUrl = getBaseURL();
           const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=student&state=${state}`;
           window.location.href = oauthUrl;
         }
@@ -51,7 +51,7 @@ export default function GoogleLoginButton({
       const state = Math.random().toString(36).substring(2);
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_user_type', user_type);
-      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const apiUrl = getBaseURL();
       const oauthUrl = `${apiUrl}/api/auth/google/authorize?user_type=${user_type}&state=${state}`;
       window.location.href = oauthUrl;
     }

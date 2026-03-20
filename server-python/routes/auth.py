@@ -16,7 +16,7 @@ router = Blueprint('auth', __name__)
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-FRONTEND_URL = 'http://localhost:5173'
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 BACKEND_URL = os.environ.get('BACKEND_URL', 'http://localhost:5000')
 
 # OAuth scopes for Classroom integration (requested for ALL teacher logins)
