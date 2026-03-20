@@ -4,7 +4,7 @@ const RegisContext = createContext(null);
 
 // Ollama local model - hardcoded
 const OLLAMA_BASE_URL = 'http://localhost:11434';
-const OLLAMA_MODEL = 'llama3.1:8b';
+const OLLAMA_MODEL = 'qwen3.5:27b';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {
@@ -39,10 +39,10 @@ export function RegisProvider({ children }) {
                 console.error('[RegisContext] Error data:', JSON.stringify(err, null, 2));
 
                 if (res.status === 503 || res.status === 500) {
-                    throw new Error(`Ollama model "${OLLAMA_MODEL}" not available. Make sure Ollama is running and the model is downloaded. Run: ollama pull llama3.1:8b`);
+                    throw new Error(`Ollama model "${OLLAMA_MODEL}" not available. Make sure Ollama is running and the model is downloaded. Run: ollama pull qwen3.5:27b`);
                 }
                 if (res.status === 404) {
-                    throw new Error(`Ollama model "${OLLAMA_MODEL}" not found. Run: ollama pull llama3.1:8b`);
+                    throw new Error(`Ollama model "${OLLAMA_MODEL}" not found. Run: ollama pull qwen3.5:27b`);
                 }
                 if (res.status === 0 || err.message?.includes('fetch')) {
                     throw new Error('Cannot connect to Ollama. Make sure Ollama is installed and running at http://localhost:11434');

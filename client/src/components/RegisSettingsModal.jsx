@@ -56,8 +56,8 @@ export default function RegisSettingsModal({ onClose }) {
                     <p className="font-syne font-700 text-sm text-ink mb-2">📦 First Time Setup</p>
                     <ol className="font-dm text-xs text-muted space-y-2 list-decimal list-inside">
                         <li>Install Ollama from <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" className="text-accent underline">ollama.ai</a></li>
-                        <li>Run: <code className="bg-ink/20 px-1 rounded">ollama pull llama3.1:8b</code></li>
-                        <li>Wait for download (~4.7 GB)</li>
+                        <li>Run: <code className="bg-ink/20 px-1 rounded">ollama pull qwen3.5:27b</code></li>
+                        <li>Wait for download (~15 GB)</li>
                         <li>Refresh this page</li>
                     </ol>
                 </div>

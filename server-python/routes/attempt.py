@@ -292,27 +292,33 @@ def complete_attempt(id):
                 conn.commit()
 
         # Sync grade to Classroom if quiz is posted
+        logger.info(f"DEBUG: quiz={quiz}, student_email={student_email}")
         if quiz and quiz['posted_to_classroom'] and quiz['course_id'] and quiz['coursework_id']:
+            logger.info(f"DEBUG: Quiz has classroom settings, checking student_email")
             if student_email:
                 logger.info(f"Queueing grade sync for quiz {quiz['code']} coursework {quiz['coursework_id']} email {student_email} pct={percentage}")
-                classroom.queue_grade_sync(
-                    quiz['course_id'],
-                    quiz['coursework_id'],
-                    student_email,
-                    percentage
-                )
                 try:
+                    classroom.queue_grade_sync(
+                        quiz['course_id'],
+                        quiz['coursework_id'],
+                        student_email,
+                        percentage
+                    )
                     results = classroom.process_grade_sync_queue()
                     logger.info(f"Grade sync queue processed: {results}")
                 except Exception as sync_err:
-                    current_app.logger.error(f"Grade sync queue processing failed: {sync_err}")
+                    current_app.logger.error(f"Grade sync queue processing failed: {sync_err}", exc_info=True)
             else:
                 logger.warning(f"Grade sync skipped: missing student_email for attempt {id}")
+        else:
+            logger.info(f"Grade sync not triggered: quiz={quiz}, posted_to_classroom={quiz['posted_to_classroom'] if quiz else None}, course_id={quiz['course_id'] if quiz else None}, coursework_id={quiz['coursework_id'] if quiz else None}")
 
         return jsonify({'success': True, 'rewards': rewards})
     except Exception as e:
-        logger.exception(f"Error completing attempt {id}: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_traceback = traceback.format_exc()
+        logger.exception(f"Error completing attempt {id}: {e}\n{error_traceback}")
+        return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
 
 @router.route('/<id>', methods=['GET'])

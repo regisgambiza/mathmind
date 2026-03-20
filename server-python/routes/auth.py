@@ -27,7 +27,8 @@ SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.topics',
     'https://www.googleapis.com/auth/classroom.coursework.students',
-    'https://www.googleapis.com/auth/classroom.coursework.me'
+    'https://www.googleapis.com/auth/classroom.coursework.me',
+    'https://www.googleapis.com/auth/classroom.rosters.readonly'
 ]
 
 
@@ -329,17 +330,33 @@ def google_login_callback():
                     )
                     conn.commit()
                 else:
+                    # Check if name already exists (UNIQUE constraint)
                     student_name = name if name else email.split('@')[0]
-                    cursor = conn.execute(
-                        '''INSERT INTO students (name, google_id, email, pin, last_login_at)
-                           VALUES (?, ?, ?, ?, datetime('now'))''',
-                        (student_name, google_id, email, '')
-                    )
-                    conn.commit()
-                    student = conn.execute(
-                        'SELECT * FROM students WHERE id = ?',
-                        (cursor.lastrowid,)
+                    existing_by_name = conn.execute(
+                        'SELECT * FROM students WHERE name = ?',
+                        (student_name,)
                     ).fetchone()
+
+                    if existing_by_name:
+                        # Use existing student with this name
+                        conn.execute(
+                            'UPDATE students SET google_id = ?, email = ? WHERE id = ?',
+                            (google_id, email, existing_by_name['id'])
+                        )
+                        conn.commit()
+                        student = existing_by_name
+                    else:
+                        # Create new student
+                        cursor = conn.execute(
+                            '''INSERT INTO students (name, google_id, email, pin, last_login_at)
+                               VALUES (?, ?, ?, ?, datetime('now'))''',
+                            (student_name, google_id, email, '')
+                        )
+                        conn.commit()
+                        student = conn.execute(
+                            'SELECT * FROM students WHERE id = ?',
+                            (cursor.lastrowid,)
+                        ).fetchone()
 
             user_data = {
                 'id': student['id'],
@@ -433,7 +450,7 @@ def google_classroom_auth():
         authorization_url, state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
-            prompt='consent'
+            prompt='consent select_account'  # Force fresh consent to get new scopes
         )
         
         # Store state and teacher_id in session

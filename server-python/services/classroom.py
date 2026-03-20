@@ -20,7 +20,8 @@ CLASSROOM_SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.topics',
     'https://www.googleapis.com/auth/classroom.coursework.students',
-    'https://www.googleapis.com/auth/classroom.coursework.me'
+    'https://www.googleapis.com/auth/classroom.coursework.me',
+    'https://www.googleapis.com/auth/classroom.rosters.readonly'
 ]
 
 
@@ -430,13 +431,13 @@ def sync_grade(teacher_id, course_id, coursework_id, student_user_id, percentage
 def queue_grade_sync(course_id, coursework_id, student_email, percentage):
     """Add grade to sync queue for later retry if needed"""
     conn = db.get_db()
-    conn.execute('''
+    cursor = conn.execute('''
         INSERT INTO grade_sync_queue (course_id, coursework_id, student_email, percentage, status)
         VALUES (?, ?, ?, ?, 'pending')
     ''', (course_id, coursework_id, student_email, percentage))
     conn.commit()
     logger.info(f"Enqueued grade sync course={course_id} coursework={coursework_id} student={student_email} pct={percentage}")
-    return conn.lastrowid
+    return cursor.lastrowid
 
 
 def process_grade_sync_queue():

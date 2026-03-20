@@ -9,10 +9,10 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 ```json
 {
   "local": {
-    "qwen3.5": {
+    "qwen3.5:27b": {
       "strengths": ["code_generation", "reasoning", "math"],
-      "speed": "fast",
-      "quality": "high"
+      "speed": "medium",
+      "quality": "very_high"
     },
     "gpt-oss": {
       "strengths": ["general_chat", "code_review"],
@@ -62,27 +62,27 @@ Route AI tasks to appropriate models deterministically based on task type, elimi
 ```javascript
 const modelRouter = {
   // Code analysis and generation
-  "code_generation": "qwen3.5",
-  "code_review": "qwen3.5",
-  "debugging": "qwen3.5",
-  "refactoring": "qwen3.5",
-  
+  "code_generation": "qwen3.5:27b",
+  "code_review": "qwen3.5:27b",
+  "debugging": "qwen3.5:27b",
+  "refactoring": "qwen3.5:27b",
+
   // Math and reasoning
-  "math_problem": "qwen3.5",
-  "reasoning": "qwen3.5",
-  "analysis": "qwen3.5",
-  
+  "math_problem": "qwen3.5:27b",
+  "reasoning": "qwen3.5:27b",
+  "analysis": "qwen3.5:27b",
+
   // Text generation
   "text_generation": "llama3.1:8b",
   "summarization": "llama3.1:8b",
   "explanation": "llama3.1:8b",
-  
+
   // Quick tasks
   "simple_query": "glm-4.7-flash",
   "health_check": "glm-4.7-flash",
-  
+
   // Fallback
-  "default": "qwen3.5"
+  "default": "qwen3.5:27b"
 };
 ```
 
@@ -115,10 +115,10 @@ function selectProvider(taskType, config) {
 ### Fallback Logic
 ```javascript
 const fallbackChain = {
-  'qwen3.5': ['gpt-oss', 'llama3.1:8b', 'glm-4.7-flash'],
-  'gpt-oss': ['qwen3.5', 'llama3.1:8b', 'glm-4.7-flash'],
-  'llama3.1:8b': ['qwen3.5', 'gpt-oss', 'glm-4.7-flash'],
-  'glm-4.7-flash': ['qwen3.5', 'gpt-oss', 'llama3.1:8b']
+  'qwen3.5:27b': ['gpt-oss', 'llama3.1:8b', 'glm-4.7-flash'],
+  'gpt-oss': ['qwen3.5:27b', 'llama3.1:8b', 'glm-4.7-flash'],
+  'llama3.1:8b': ['qwen3.5:27b', 'gpt-oss', 'glm-4.7-flash'],
+  'glm-4.7-flash': ['qwen3.5:27b', 'gpt-oss', 'llama3.1:8b']
 };
 
 function getFallbackModel(currentModel, error) {
@@ -135,7 +135,7 @@ function getFallbackModel(currentModel, error) {
 {
   "mathmind_regis_config": {
     "provider": "ollama",
-    "model": "qwen3.5",
+    "model": "qwen3.5:27b",
     "baseUrl": "http://localhost:11434",
     "apiKey": "",
     "fallbackEnabled": true,
