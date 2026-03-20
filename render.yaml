@@ -4,7 +4,7 @@ services:
     name: mathmind-backend
     env: docker
     dockerContext: server-python
-    dockerfilePath: Dockerfile
+    dockerfilePath: server-python/Dockerfile
     plan: free # Can be changed to paid for performance
     envVars:
       - key: DATABASE_URL
