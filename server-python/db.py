@@ -329,40 +329,74 @@ def get_schema(is_postgres=False):
     return schema
 
 # Compatibility Layer
+class CursorWrapper:
+    def __init__(self, cursor, is_postgres=False):
+        self.cursor = cursor
+        self.is_postgres = is_postgres
+        self.lastrowid = None
+        if hasattr(cursor, 'lastrowid'):
+            self.lastrowid = cursor.lastrowid
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        if row is None: return None
+        return dict(row) if self.is_postgres else row
+
+    def fetchall(self):
+        rows = self.cursor.fetchall()
+        return [dict(r) for r in rows] if self.is_postgres else rows
+
+    def __iter__(self):
+        return iter(self.cursor)
+
+    def __getattr__(self, name):
+        return getattr(self.cursor, name)
+
 class DBWrapper:
     def __init__(self, conn, is_postgres=False):
-        self._conn = conn
+        self.conn = conn
         self.is_postgres = is_postgres
 
     def execute(self, sql, params=()):
         if self.is_postgres:
-            # Simple conversion from ? to %s for Postgres
-            if '?' in sql:
-                sql = sql.replace('?', '%s')
-            
-            # Handle SQLite specific dialect stuff
+            # Postgres compatibility
+            sql = re.sub(r'\?', r'%s', sql)
             sql = re.sub(r'INSERT OR IGNORE INTO', 'INSERT INTO', sql, flags=re.IGNORECASE)
-            if 'INSERT INTO' in sql.upper() and 'ON CONFLICT' not in sql.upper():
-                # Note: Adding ON CONFLICT is complex globally, so we rely on routes being Postgres-aware if needed
-                # or we just let it fail if it's a conflict and not handled.
-                pass
             
             # Date conversions
             sql = re.sub(r'datetime\(\'now\'\)', 'CURRENT_TIMESTAMP', sql, flags=re.IGNORECASE)
             sql = re.sub(r'date\(\"now\"\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
 
-            cursor = self._conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            # Add RETURNING id for INSERTs to support lastrowid
+            is_insert = sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper()
+            if is_insert:
+                sql += ' RETURNING id'
+
+            cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             try:
                 cursor.execute(sql, params)
-                return cursor
+                wrapper = CursorWrapper(cursor, is_postgres=True)
+                if is_insert:
+                    try:
+                        res = cursor.fetchone()
+                        if res:
+                            wrapper.lastrowid = res[0]
+                    except:
+                        pass
+                return wrapper
             except Exception as e:
                 logger.error(f"SQL Error: {sql} | Params: {params}")
                 raise e
         else:
-            return self._conn.execute(sql, params)
+            # SQLite
+            cursor = self.conn.execute(sql, params)
+            return CursorWrapper(cursor, is_postgres=False)
 
     def commit(self):
-        self._conn.commit()
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
 
     def fetchall(self, sql, params=()):
         cur = self.execute(sql, params)
@@ -373,7 +407,7 @@ class DBWrapper:
         return cur.fetchone()
 
     def close(self):
-        self._conn.close()
+        self.conn.close()
 
 def get_db():
     if not hasattr(_thread_local, 'db'):
