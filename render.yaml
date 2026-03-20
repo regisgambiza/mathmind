@@ -32,10 +32,7 @@ services:
     staticPublishPath: client/dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: mathmind-backend
-          property: host
+        value: mathmind-backend.onrender.com
 
 databases:
   - name: mathmind-db
