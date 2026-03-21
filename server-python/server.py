@@ -27,7 +27,7 @@ app.url_map.strict_slashes = False
 logger.info("=" * 60)
 logger.info("MathMind Python Server Starting...")
 logger.info(f"Secret key configured: {bool(os.environ.get('SECRET_KEY'))}")
-logger.info(f"Database path: {db.DB_PATH}")
+logger.info(f"Database URL configured: {bool(os.environ.get('DATABASE_URL'))}")
 
 # CORS configuration
 cors_origins_str = os.environ.get('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
@@ -94,8 +94,8 @@ def handle_student_progress(data):
             conn = db.get_db()
             conn.execute('''
                 UPDATE attempts
-                SET current_question = ?, last_activity_at = datetime('now'), socket_id = ?
-                WHERE id = ?
+                SET current_question = %s, last_activity_at = CURRENT_TIMESTAMP, socket_id = %s
+                WHERE id = %s
             ''', (question_index, request.sid, attempt_id))
             conn.commit()
             socket_logger.debug(f"Updated attempt {attempt_id} progress: question={question_index}")
@@ -154,8 +154,8 @@ def handle_student_completed(data):
             conn = db.get_db()
             conn.execute('''
                 UPDATE attempts
-                SET status = 'completed', completed_at = datetime('now'), score = ?, total = ?, percentage = ?
-                WHERE id = ?
+                SET status = 'completed', completed_at = CURRENT_TIMESTAMP, score = %s, total = %s, percentage = %s
+                WHERE id = %s
             ''', (score, total, percentage, attempt_id))
             conn.commit()
             socket_logger.debug(f"Updated attempt {attempt_id} as completed: score={score}/{total}")
@@ -255,7 +255,7 @@ def after_request(response):
             conn = db.get_db()
             conn.execute('''
                 INSERT INTO system_events (event_type, level, message, path, status_code, latency_ms, detail_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''', (
                 'http_request',
                 'error' if response.status_code >= 500 else ('warn' if response.status_code >= 400 else 'info'),
@@ -295,7 +295,7 @@ def handle_options(path):
 
 # ============== Import and Register Routes ==============
 
-from routes import quiz, attempt, violations, dashboard, auth, student, admin, practice, classroom
+from routes import quiz, attempt, violations, dashboard, auth, student, admin, practice, classroom, ai
 
 app.register_blueprint(quiz.router, url_prefix='/api/quiz')
 app.register_blueprint(attempt.router, url_prefix='/api/attempt')
@@ -306,6 +306,7 @@ app.register_blueprint(student.router, url_prefix='/api/student')
 app.register_blueprint(admin.router, url_prefix='/api/admin')
 app.register_blueprint(practice.router, url_prefix='/api/practice')
 app.register_blueprint(classroom.router, url_prefix='/api/classroom')
+app.register_blueprint(ai.router, url_prefix='/api/ai')
 
 # Serve books directory statically (for curriculum JSON files)
 @app.route('/books/<path:filename>')

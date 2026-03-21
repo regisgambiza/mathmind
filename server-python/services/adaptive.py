@@ -93,17 +93,17 @@ def _get_student_history(db, student_id, topic=None, chapter=None, subtopics=Non
         FROM answers ans
         INNER JOIN attempts a ON a.id = ans.attempt_id
         LEFT JOIN quizzes q ON q.code = a.quiz_code
-        WHERE a.student_id = ? AND a.completed_at IS NOT NULL
+        WHERE a.student_id = %s AND a.completed_at IS NOT NULL
     '''
 
     params = [student_id]
 
     if topic:
-        query += ' AND (q.topic = ? OR q.chapter = ?)'
+        query += ' AND (q.topic = %s OR q.chapter = %s)'
         params.extend([topic, topic])
 
     if subtopics:
-        subtopic_conditions = ' OR '.join(['ans.skill_tag = ?' for _ in subtopics])
+        subtopic_conditions = ' OR '.join(['ans.skill_tag = %s' for _ in subtopics])
         query += f' AND ({subtopic_conditions})'
         params.extend(subtopics)
 
@@ -125,13 +125,13 @@ def _identify_weak_skills(db, student_id, topic=None, subtopics=None):
             AVG(CASE WHEN ans.is_correct = 1 THEN 1.0 ELSE 0.0 END) as accuracy
         FROM answers ans
         INNER JOIN attempts a ON a.id = ans.attempt_id
-        WHERE a.student_id = ?
+        WHERE a.student_id = %s
     '''
 
     params = [student_id]
 
     if subtopics:
-        subtopic_conditions = ' OR '.join(['ans.skill_tag = ?' for _ in subtopics])
+        subtopic_conditions = ' OR '.join(['ans.skill_tag = %s' for _ in subtopics])
         query += f' AND ({subtopic_conditions})'
         params.extend(subtopics)
 

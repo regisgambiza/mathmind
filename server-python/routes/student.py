@@ -84,7 +84,7 @@ def get_student_by_id(conn, id):
     row = conn.execute('''
         SELECT id, name, xp, level, streak_days, best_streak_days, total_quizzes, leaderboard_opt_in, created_at, last_login_at
         FROM students
-        WHERE id = ?
+        WHERE id = %s
     ''', (id,)).fetchone()
     return dict(row) if row else None
 
@@ -168,29 +168,29 @@ def google_login():
 
         # Find existing student
         student = conn.execute(
-            'SELECT * FROM students WHERE google_id = ?', (google_id,)
+            'SELECT * FROM students WHERE google_id = %s', (google_id,)
         ).fetchone()
 
         if not student:
             student = conn.execute(
-                'SELECT * FROM students WHERE email = ?', (email,)
+                'SELECT * FROM students WHERE email = %s', (email,)
             ).fetchone()
 
         if not student:
             # Auto-create student
             cursor = conn.execute(
                 '''INSERT INTO students (name, google_id, email, pin, last_login_at)
-                   VALUES (?, ?, ?, ?, datetime('now'))''',
+                   VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)''',
                 (name, google_id, email, '')
             )
             conn.commit()
             student = conn.execute(
-                'SELECT * FROM students WHERE id = ?', (cursor.lastrowid,)
+                'SELECT * FROM students WHERE id = %s', (cursor.lastrowid,)
             ).fetchone()
         else:
             # Update google_id if missing
             conn.execute(
-                'UPDATE students SET google_id = ?, last_login_at = datetime(\'now\') WHERE id = ?',
+                'UPDATE students SET google_id = %s, last_login_at = CURRENT_TIMESTAMP WHERE id = %s',
                 (google_id, student['id'])
             )
             conn.commit()
@@ -218,7 +218,7 @@ def get_leaderboard():
         quiz_code = request.args.get('quiz_code', '')
 
         # Get leaderboard controls
-        controls_row = conn.execute('SELECT value_json FROM admin_settings WHERE setting_key = ?', ('leaderboard_controls',)).fetchone()
+        controls_row = conn.execute('SELECT value_json FROM admin_settings WHERE setting_key = %s', ('leaderboard_controls',)).fetchone()
         controls = safe_parse_json(controls_row['value_json'], {'enabled': True, 'anonymize': False, 'class_only': False}) if controls_row else {'enabled': True, 'anonymize': False, 'class_only': False}
 
         if controls.get('enabled') == False:
@@ -242,10 +242,10 @@ def get_leaderboard():
             rows = conn.execute('''
                 SELECT s.id, s.name, s.xp, s.level, s.total_quizzes, s.streak_days
                 FROM students s
-                WHERE s.leaderboard_opt_in = 1
+                WHERE s.leaderboard_opt_in = TRUE
                   AND EXISTS (
                     SELECT 1 FROM attempts a
-                    WHERE a.student_id = s.id AND a.quiz_code = ?
+                    WHERE a.student_id = s.id AND a.quiz_code = %s
                   )
                 ORDER BY s.xp DESC, s.total_quizzes DESC, s.name ASC
             ''', (quiz_code.upper(),)).fetchall()
@@ -253,7 +253,7 @@ def get_leaderboard():
             rows = conn.execute('''
                 SELECT id, name, xp, level, total_quizzes, streak_days
                 FROM students
-                WHERE leaderboard_opt_in = 1
+                WHERE leaderboard_opt_in = TRUE
                 ORDER BY xp DESC, total_quizzes DESC, name ASC
             ''').fetchall()
 
@@ -309,7 +309,7 @@ def get_adaptive_plan(id):
             WHERE flag_key = 'adaptive_engine'
         ''').fetchone()
 
-        flag_enabled = flag_row['enabled'] == 1 if flag_row else True
+        flag_enabled = flag_row['enabled'] == True if flag_row else True
         rollout_pct = max(0, min(100, to_int(flag_row['rollout_pct'], 100) if flag_row else 100))
         in_rollout = (student_id % 100) < rollout_pct
 
@@ -329,15 +329,15 @@ def get_adaptive_plan(id):
             INSERT INTO adaptive_plan_events (
                 student_id, quiz_code, topic, chapter, subtopics_json,
                 has_history, fallback_used, mastery_overall, recent_accuracy, trend, plan_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             student_id,
             quiz_code,
             topic,
             chapter,
             json.dumps(subtopics),
-            1 if plan.get('has_history') else 0,
-            1 if fallback_used else 0,
+            plan.get('has_history', False),
+            fallback_used,
             plan.get('mastery_overall'),
             plan.get('recent_accuracy'),
             plan.get('trend'),
@@ -373,7 +373,7 @@ def get_profile(id):
                 SUM(score) as total_correct,
                 SUM(total) as total_questions
             FROM attempts
-            WHERE student_id = ? AND completed_at IS NOT NULL
+            WHERE student_id = %s AND completed_at IS NOT NULL
         ''', (student_id,)).fetchone()
         stats = dict(stats_row) if stats_row else {}
 
@@ -416,7 +416,7 @@ def get_progress(id):
                 AVG(CASE WHEN lower(COALESCE(q.activity_type, 'class_activity')) = 'topic_quiz' THEN a.percentage END) as topic_quiz_avg
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ? AND a.completed_at IS NOT NULL
+            WHERE a.student_id = %s AND a.completed_at IS NOT NULL
         ''', (student_id,)).fetchone()
         summary = dict(summary_row) if summary_row else {}
 
@@ -437,8 +437,8 @@ def get_progress(id):
                 a.xp_earned
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ? AND a.completed_at IS NOT NULL
-            ORDER BY datetime(a.completed_at) DESC
+            WHERE a.student_id = %s AND a.completed_at IS NOT NULL
+            ORDER BY a.completed_at DESC
             LIMIT 20
         ''', (student_id,)).fetchall()
 
@@ -468,7 +468,7 @@ def get_progress(id):
             FROM answers ans
             INNER JOIN attempts a ON a.id = ans.attempt_id
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ? AND a.completed_at IS NOT NULL
+            WHERE a.student_id = %s AND a.completed_at IS NOT NULL
             GROUP BY COALESCE(NULLIF(TRIM(ans.skill_tag), ''), COALESCE(q.chapter, q.topic, 'General'))
             HAVING COUNT(*) >= 1
             ORDER BY accuracy_ratio DESC, questions_answered DESC
@@ -505,10 +505,10 @@ def get_progress(id):
             FROM answers ans
             INNER JOIN attempts a ON a.id = ans.attempt_id
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ?
+            WHERE a.student_id = %s
               AND a.completed_at IS NOT NULL
               AND (ans.is_correct = 0 OR ans.is_correct IS NULL)
-            ORDER BY datetime(a.completed_at) DESC
+            ORDER BY a.completed_at DESC
             LIMIT 40
         ''', (student_id,)).fetchall()
 
@@ -520,7 +520,7 @@ def get_progress(id):
         leaderboard_rows = conn.execute('''
             SELECT id, name, xp, level, total_quizzes, streak_days
             FROM students
-            WHERE leaderboard_opt_in = 1
+            WHERE leaderboard_opt_in = TRUE
             ORDER BY xp DESC, total_quizzes DESC, name ASC
         ''').fetchall()
 
@@ -547,8 +547,8 @@ def get_progress(id):
         events = conn.execute('''
             SELECT id, event_type, points, detail_json, created_at
             FROM gamification_events
-            WHERE student_id = ?
-            ORDER BY datetime(created_at) DESC
+            WHERE student_id = %s
+            ORDER BY created_at DESC
             LIMIT 30
         ''', (student_id,)).fetchall()
 
@@ -627,8 +627,8 @@ def update_settings(id):
             return jsonify({'error': 'Student not found.'}), 404
 
         if 'leaderboard_opt_in' in data:
-            opt_in = 1 if data['leaderboard_opt_in'] else 0
-            conn.execute('UPDATE students SET leaderboard_opt_in = ? WHERE id = ?', (opt_in, student_id))
+            opt_in = True if data['leaderboard_opt_in'] else False
+            conn.execute('UPDATE students SET leaderboard_opt_in = %s WHERE id = %s', (opt_in, student_id))
             conn.commit()
 
         updated = get_student_by_id(conn, student_id)

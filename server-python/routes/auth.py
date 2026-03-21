@@ -81,14 +81,14 @@ def google_login():
         if user_type == 'teacher':
             # Check if teacher exists with this Google ID
             teacher = conn.execute(
-                'SELECT * FROM teachers WHERE google_id = ?',
+                'SELECT * FROM teachers WHERE google_id = %s',
                 (google_id,)
             ).fetchone()
 
             if not teacher:
                 # Check if teacher exists with this email
                 teacher = conn.execute(
-                    'SELECT * FROM teachers WHERE email = ?',
+                    'SELECT * FROM teachers WHERE email = %s',
                     (email,)
                 ).fetchone()
 
@@ -97,11 +97,11 @@ def google_login():
                     expires_at = credentials.expiry.isoformat() if credentials.expiry else None
                     conn.execute(
                         '''UPDATE teachers 
-                           SET google_id = ?, name = ?, 
-                               google_refresh_token = ?,
-                               google_access_token = ?,
-                               google_token_expires_at = ?
-                           WHERE id = ?''',
+                           SET google_id = %s, name = %s, 
+                               google_refresh_token = %s,
+                               google_access_token = %s,
+                               google_token_expires_at = %s
+                           WHERE id = %s''',
                         (google_id, name, credentials.refresh_token, credentials.token, expires_at, teacher['id'])
                     )
                     conn.commit()
@@ -111,13 +111,13 @@ def google_login():
                     cursor = conn.execute(
                         '''INSERT INTO teachers (username, google_id, email, name, password,
                                google_refresh_token, google_access_token, google_token_expires_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
                         (email.split('@')[0], google_id, email, name, '',
                          credentials.refresh_token, credentials.token, expires_at)
                     )
                     conn.commit()
                     teacher = conn.execute(
-                        'SELECT * FROM teachers WHERE id = ?',
+                        'SELECT * FROM teachers WHERE id = %s',
                         (cursor.lastrowid,)
                     ).fetchone()
             else:
@@ -125,10 +125,10 @@ def google_login():
                 expires_at = credentials.expiry.isoformat() if credentials.expiry else None
                 conn.execute(
                     '''UPDATE teachers 
-                       SET google_refresh_token = ?,
-                           google_access_token = ?,
-                           google_token_expires_at = ?
-                       WHERE id = ?''',
+                       SET google_refresh_token = %s,
+                           google_access_token = %s,
+                           google_token_expires_at = %s
+                       WHERE id = %s''',
                     (credentials.refresh_token, credentials.token, expires_at, teacher['id'])
                 )
                 conn.commit()
@@ -148,21 +148,21 @@ def google_login():
         else:  # student
             # Students don't need Classroom tokens
             student = conn.execute(
-                'SELECT * FROM students WHERE google_id = ?',
+                'SELECT * FROM students WHERE google_id = %s',
                 (google_id,)
             ).fetchone()
 
             if not student:
                 # Check if student exists with this email
                 student = conn.execute(
-                    'SELECT * FROM students WHERE email = ?',
+                    'SELECT * FROM students WHERE email = %s',
                     (email,)
                 ).fetchone()
 
                 if student:
                     # Update existing student with Google ID
                     conn.execute(
-                        'UPDATE students SET google_id = ?, name = ? WHERE id = ?',
+                        'UPDATE students SET google_id = %s, name = %s WHERE id = %s',
                         (google_id, name, student['id'])
                     )
                     conn.commit()
@@ -171,12 +171,12 @@ def google_login():
                     student_name = name if name else email.split('@')[0]
                     cursor = conn.execute(
                         '''INSERT INTO students (name, google_id, email, pin, last_login_at)
-                           VALUES (?, ?, ?, ?, datetime('now'))''',
+                           VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)''',
                         (student_name, google_id, email, '')
                     )
                     conn.commit()
                     student = conn.execute(
-                        'SELECT * FROM students WHERE id = ?',
+                        'SELECT * FROM students WHERE id = %s',
                         (cursor.lastrowid,)
                     ).fetchone()
 
@@ -256,24 +256,24 @@ def google_login_callback():
         if user_type == 'teacher':
             # Upsert teacher with tokens
             teacher = conn.execute(
-                'SELECT * FROM teachers WHERE google_id = ?',
+                'SELECT * FROM teachers WHERE google_id = %s',
                 (google_id,)
             ).fetchone()
 
             if not teacher:
                 teacher = conn.execute(
-                    'SELECT * FROM teachers WHERE email = ?',
+                    'SELECT * FROM teachers WHERE email = %s',
                     (email,)
                 ).fetchone()
 
                 if teacher:
                     conn.execute(
                         '''UPDATE teachers 
-                           SET google_id = ?, name = ?, 
-                               google_refresh_token = ?,
-                               google_access_token = ?,
-                               google_token_expires_at = ?
-                           WHERE id = ?''',
+                           SET google_id = %s, name = %s, 
+                               google_refresh_token = %s,
+                               google_access_token = %s,
+                               google_token_expires_at = %s
+                           WHERE id = %s''',
                         (google_id, name, credentials.refresh_token, credentials.token, expires_at, teacher['id'])
                     )
                     conn.commit()
@@ -281,22 +281,22 @@ def google_login_callback():
                     cursor = conn.execute(
                         '''INSERT INTO teachers (username, google_id, email, name, password,
                                google_refresh_token, google_access_token, google_token_expires_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
                         (email.split('@')[0], google_id, email, name, '',
                          credentials.refresh_token, credentials.token, expires_at)
                     )
                     conn.commit()
                     teacher = conn.execute(
-                        'SELECT * FROM teachers WHERE id = ?',
+                        'SELECT * FROM teachers WHERE id = %s',
                         (cursor.lastrowid,)
                     ).fetchone()
             else:
                 conn.execute(
                     '''UPDATE teachers 
-                       SET google_refresh_token = ?,
-                           google_access_token = ?,
-                           google_token_expires_at = ?
-                       WHERE id = ?''',
+                       SET google_refresh_token = %s,
+                           google_access_token = %s,
+                           google_token_expires_at = %s
+                       WHERE id = %s''',
                     (credentials.refresh_token, credentials.token, expires_at, teacher['id'])
                 )
                 conn.commit()
@@ -315,19 +315,19 @@ def google_login_callback():
         else:
             # Student login (no tokens needed)
             student = conn.execute(
-                'SELECT * FROM students WHERE google_id = ?',
+                'SELECT * FROM students WHERE google_id = %s',
                 (google_id,)
             ).fetchone()
 
             if not student:
                 student = conn.execute(
-                    'SELECT * FROM students WHERE email = ?',
+                    'SELECT * FROM students WHERE email = %s',
                     (email,)
                 ).fetchone()
 
                 if student:
                     conn.execute(
-                        'UPDATE students SET google_id = ?, name = ? WHERE id = ?',
+                        'UPDATE students SET google_id = %s, name = %s WHERE id = %s',
                         (google_id, name, student['id'])
                     )
                     conn.commit()
@@ -335,14 +335,14 @@ def google_login_callback():
                     # Check if name already exists (UNIQUE constraint)
                     student_name = name if name else email.split('@')[0]
                     existing_by_name = conn.execute(
-                        'SELECT * FROM students WHERE name = ?',
+                        'SELECT * FROM students WHERE name = %s',
                         (student_name,)
                     ).fetchone()
 
                     if existing_by_name:
                         # Use existing student with this name
                         conn.execute(
-                            'UPDATE students SET google_id = ?, email = ? WHERE id = ?',
+                            'UPDATE students SET google_id = %s, email = %s WHERE id = %s',
                             (google_id, email, existing_by_name['id'])
                         )
                         conn.commit()
@@ -351,12 +351,12 @@ def google_login_callback():
                         # Create new student
                         cursor = conn.execute(
                             '''INSERT INTO students (name, google_id, email, pin, last_login_at)
-                               VALUES (?, ?, ?, ?, datetime('now'))''',
+                               VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)''',
                             (student_name, google_id, email, '')
                         )
                         conn.commit()
                         student = conn.execute(
-                            'SELECT * FROM students WHERE id = ?',
+                            'SELECT * FROM students WHERE id = %s',
                             (cursor.lastrowid,)
                         ).fetchone()
 
@@ -529,17 +529,17 @@ def google_callback():
 
         conn.execute('''
             UPDATE teachers
-            SET google_refresh_token = ?,
-                google_access_token = ?,
-                google_token_expires_at = ?
-            WHERE id = ?
+            SET google_refresh_token = %s,
+                google_access_token = %s,
+                google_token_expires_at = %s
+            WHERE id = %s
         ''', (credentials.refresh_token, credentials.token, expires_at, teacher_id))
         conn.commit()
 
         logger.info(f"Tokens stored for teacher {teacher_id}")
         
         # Verify teacher was updated
-        teacher = conn.execute('SELECT * FROM teachers WHERE id = ?', (teacher_id,)).fetchone()
+        teacher = conn.execute('SELECT * FROM teachers WHERE id = %s', (teacher_id,)).fetchone()
         if not teacher:
             return redirect(f'{FRONTEND_URL}/teacher/connect-classroom?error=teacher_not_found')
         
@@ -569,7 +569,7 @@ def google_status():
     try:
         conn = db.get_db()
         teacher = conn.execute(
-            'SELECT google_refresh_token, google_token_expires_at, email FROM teachers WHERE id = ?',
+            'SELECT google_refresh_token, google_token_expires_at, email FROM teachers WHERE id = %s',
             (teacher_id,)
         ).fetchone()
         

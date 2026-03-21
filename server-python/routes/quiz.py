@@ -53,7 +53,7 @@ def create_quiz():
                 difficulty, question_types, type_weights, q_count, time_limit_mins, release_at, close_at,
                 extra_instructions, adaptive_level, course_id, topic_id, coursework_id,
                 posted_to_classroom, created_by
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         ''', (
             code,
             topic,
@@ -73,7 +73,7 @@ def create_quiz():
             data.get('course_id'),
             data.get('topic_id'),
             data.get('coursework_id'),
-            1 if data.get('posted_to_classroom') else 0,
+            bool(data.get('posted_to_classroom')),
             data.get('created_by')
         ))
         conn.commit()
@@ -95,8 +95,8 @@ def get_stats():
         conn = db.get_db()
         total_quizzes = conn.execute('SELECT COUNT(*) as count FROM quizzes').fetchone()['count']
         total_attempts = conn.execute('SELECT COUNT(*) as count FROM attempts').fetchone()['count']
-        avg_score = conn.execute('SELECT AVG(percentage) as avg FROM attempts WHERE status = "completed"').fetchone()['avg'] or 0
-        active_today = conn.execute('SELECT COUNT(*) as count FROM quizzes WHERE date(created_at) = date("now")').fetchone()['count']
+        avg_score = conn.execute("SELECT AVG(percentage) as avg FROM attempts WHERE status = 'completed'").fetchone()['avg'] or 0
+        active_today = conn.execute('SELECT COUNT(*) as count FROM quizzes WHERE created_at::date = CURRENT_DATE').fetchone()['count']
         class_activities = conn.execute('''
             SELECT COUNT(*) as count FROM quizzes
             WHERE lower(COALESCE(activity_type, 'class_activity')) = 'class_activity'
@@ -126,7 +126,7 @@ def get_quiz(code):
     logger.info(f"Getting quiz: {code}")
     try:
         conn = db.get_db()
-        quiz = conn.execute('SELECT * FROM quizzes WHERE code = ?', (code.upper(),)).fetchone()
+        quiz = conn.execute('SELECT * FROM quizzes WHERE code = %s', (code.upper(),)).fetchone()
         if not quiz:
             logger.warning(f"Quiz not found: {code}")
             return jsonify({'error': 'Quiz not found'}), 404
@@ -176,24 +176,24 @@ def update_quiz(code):
     try:
         conn = db.get_db()
         conn.execute('''UPDATE quizzes SET
-            topic = COALESCE(?, topic),
-            chapter = COALESCE(?, chapter),
-            subtopic = COALESCE(?, subtopic),
-            activity_type = COALESCE(?, activity_type),
-            class_name = COALESCE(?, class_name),
-            section_name = COALESCE(?, section_name),
-            grade = COALESCE(?, grade),
-            question_types = COALESCE(?, question_types),
-            q_count = COALESCE(?, q_count),
-            time_limit_mins = COALESCE(?, time_limit_mins),
-            release_at = COALESCE(?, release_at),
-            close_at = COALESCE(?, close_at),
-            extra_instructions = COALESCE(?, extra_instructions),
-            course_id = COALESCE(?, course_id),
-            topic_id = COALESCE(?, topic_id),
-            coursework_id = COALESCE(?, coursework_id),
-            posted_to_classroom = COALESCE(?, posted_to_classroom)
-            WHERE code = ?''', (
+            topic = COALESCE(%s, topic),
+            chapter = COALESCE(%s, chapter),
+            subtopic = COALESCE(%s, subtopic),
+            activity_type = COALESCE(%s, activity_type),
+            class_name = COALESCE(%s, class_name),
+            section_name = COALESCE(%s, section_name),
+            grade = COALESCE(%s, grade),
+            question_types = COALESCE(%s, question_types),
+            q_count = COALESCE(%s, q_count),
+            time_limit_mins = COALESCE(%s, time_limit_mins),
+            release_at = COALESCE(%s, release_at),
+            close_at = COALESCE(%s, close_at),
+            extra_instructions = COALESCE(%s, extra_instructions),
+            course_id = COALESCE(%s, course_id),
+            topic_id = COALESCE(%s, topic_id),
+            coursework_id = COALESCE(%s, coursework_id),
+            posted_to_classroom = COALESCE(%s, posted_to_classroom)
+            WHERE code = %s''', (
             data.get('topic'),
             data.get('chapter'),
             data.get('subtopic'),
@@ -210,7 +210,7 @@ def update_quiz(code):
             data.get('course_id'),
             data.get('topic_id'),
             data.get('coursework_id'),
-            data.get('posted_to_classroom'),
+            bool(data.get('posted_to_classroom')) if 'posted_to_classroom' in data else None,
             code.upper()
         ))
         conn.commit()
@@ -228,14 +228,14 @@ def delete_quiz(code):
     try:
         conn = db.get_db()
         code = code.upper()
-        attempts = conn.execute('SELECT id FROM attempts WHERE quiz_code = ?', (code,)).fetchall()
+        attempts = conn.execute('SELECT id FROM attempts WHERE quiz_code = %s', (code,)).fetchall()
         logger.debug(f"Found {len(attempts)} attempts for this quiz")
         for a in attempts:
-            conn.execute('DELETE FROM answers WHERE attempt_id = ?', (a['id'],))
-            conn.execute('DELETE FROM violations WHERE attempt_id = ?', (a['id'],))
-            conn.execute('DELETE FROM gamification_events WHERE attempt_id = ?', (a['id'],))
-        conn.execute('DELETE FROM attempts WHERE quiz_code = ?', (code,))
-        conn.execute('DELETE FROM quizzes WHERE code = ?', (code,))
+            conn.execute('DELETE FROM answers WHERE attempt_id = %s', (a['id'],))
+            conn.execute('DELETE FROM violations WHERE attempt_id = %s', (a['id'],))
+            conn.execute('DELETE FROM gamification_events WHERE attempt_id = %s', (a['id'],))
+        conn.execute('DELETE FROM attempts WHERE quiz_code = %s', (code,))
+        conn.execute('DELETE FROM quizzes WHERE code = %s', (code,))
         conn.commit()
         logger.info(f"✅ Quiz deleted: {code}")
         return jsonify({'success': True})

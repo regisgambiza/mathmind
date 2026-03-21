@@ -88,7 +88,7 @@ def start_attempt():
         quiz = conn.execute('''
             SELECT id, code, class_name, section_name, release_at, close_at,
                    course_id, posted_to_classroom
-            FROM quizzes WHERE code = ?
+            FROM quizzes WHERE code = %s
         ''', (quiz_code.upper(),)).fetchone()
 
         if not quiz:
@@ -103,14 +103,14 @@ def start_attempt():
         schedule = conn.execute('''
             SELECT *
             FROM assignment_schedules
-            WHERE quiz_code = ?
+            WHERE quiz_code = %s
             ORDER BY
                 CASE
-                    WHEN COALESCE(class_name, '') = COALESCE(?, '')
-                     AND COALESCE(section_name, '') = COALESCE(?, '') THEN 0
+                    WHEN COALESCE(class_name, '') = COALESCE(%s, '')
+                     AND COALESCE(section_name, '') = COALESCE(%s, '') THEN 0
                     ELSE 1
                 END,
-                datetime(updated_at) DESC,
+                updated_at DESC,
                 id DESC
             LIMIT 1
         ''', (quiz['code'], quiz['class_name'] or '', quiz['section_name'] or '')).fetchone()
@@ -138,7 +138,7 @@ def start_attempt():
         resolved_student_name = str(student_name or '').strip()
 
         if student_id:
-            student = conn.execute('SELECT id, name FROM students WHERE id = ?', (student_id,)).fetchone()
+            student = conn.execute('SELECT id, name FROM students WHERE id = %s', (student_id,)).fetchone()
             if not student:
                 return jsonify({'error': 'Student account not found'}), 404
             resolved_student_id = student['id']
@@ -150,7 +150,7 @@ def start_attempt():
         # Create attempt
         cursor = conn.execute('''
             INSERT INTO attempts (quiz_code, student_id, student_name, last_activity_at)
-            VALUES (?, ?, ?, datetime('now'))
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
         ''', (quiz_code.upper(), resolved_student_id, resolved_student_name))
         conn.commit()
         attempt_id = cursor.lastrowid
@@ -191,7 +191,7 @@ def complete_attempt(id):
 
     try:
         conn = db.get_db()
-        existing = conn.execute('SELECT * FROM attempts WHERE id = ?', (id,)).fetchone()
+        existing = conn.execute('SELECT * FROM attempts WHERE id = %s', (id,)).fetchone()
         if not existing:
             return jsonify({'error': 'Attempt not found'}), 404
 
@@ -208,14 +208,14 @@ def complete_attempt(id):
         # Get quiz details for grade sync
         quiz = conn.execute('''
             SELECT code, course_id, coursework_id, posted_to_classroom
-            FROM quizzes WHERE code = ?
+            FROM quizzes WHERE code = %s
         ''', (existing['quiz_code'],)).fetchone()
 
         # Update attempt
         conn.execute('''
             UPDATE attempts
-            SET completed_at=datetime('now'), score=?, total=?, percentage=?, time_taken_s=?, status=?
-            WHERE id=?
+            SET completed_at=CURRENT_TIMESTAMP, score=%s, total=%s, percentage=%s, time_taken_s=%s, status=%s
+            WHERE id=%s
         ''', (score, total, percentage, time_taken_s, status, id))
         conn.commit()
 
@@ -233,7 +233,7 @@ def complete_attempt(id):
         }, room=existing['quiz_code'].upper())
 
         # Delete existing answers and save new ones
-        conn.execute('DELETE FROM answers WHERE attempt_id = ?', (id,))
+        conn.execute('DELETE FROM answers WHERE attempt_id = %s', (id,))
         normalized_answers = [a for a in (answers or []) if a]
 
         for a in normalized_answers:
@@ -254,7 +254,7 @@ def complete_attempt(id):
             conn.execute('''
                 INSERT INTO answers
                 (attempt_id, q_index, q_type, skill_tag, difficulty, question_text, student_answer, correct_answer, is_correct, time_taken_s)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ''', (
                 id,
                 to_int(a.get('q_index'), 0),
@@ -285,8 +285,8 @@ def complete_attempt(id):
             if rewards:
                 conn.execute('''
                     UPDATE attempts
-                    SET xp_earned = ?, level_after = ?, streak_after = ?, rewards_json = ?
-                    WHERE id = ?
+                    SET xp_earned = %s, level_after = %s, streak_after = %s, rewards_json = %s
+                    WHERE id = %s
                 ''', (
                     to_int(rewards.get('xp_gained', 0), 0),
                     to_int(rewards.get('level_after', 1), 1),
@@ -330,11 +330,11 @@ def complete_attempt(id):
 def get_attempt(id):
     try:
         conn = db.get_db()
-        attempt = conn.execute('SELECT * FROM attempts WHERE id = ?', (id,)).fetchone()
+        attempt = conn.execute('SELECT * FROM attempts WHERE id = %s', (id,)).fetchone()
         if not attempt:
             return jsonify({'error': 'Attempt not found'}), 404
 
-        answers = conn.execute('SELECT * FROM answers WHERE attempt_id = ? ORDER BY q_index', (id,)).fetchall()
+        answers = conn.execute('SELECT * FROM answers WHERE attempt_id = %s ORDER BY q_index', (id,)).fetchall()
         result = dict(attempt)
         result['answers'] = [dict(a) for a in answers]
         return jsonify(result)

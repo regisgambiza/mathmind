@@ -34,7 +34,7 @@ def get_teacher_credentials(teacher_id):
         
     conn = db.get_db()
     teacher = conn.execute(
-        'SELECT * FROM teachers WHERE id = ?',
+        'SELECT * FROM teachers WHERE id = %s',
         (teacher_id,)
     ).fetchone()
     
@@ -49,8 +49,14 @@ def get_teacher_credentials(teacher_id):
 
     if expires_at:
         try:
-            expires_dt = datetime.fromisoformat(expires_at)
-            if expires_dt > datetime.utcnow():
+            if isinstance(expires_at, str):
+                expires_dt = datetime.fromisoformat(expires_at)
+            elif isinstance(expires_at, datetime):
+                expires_dt = expires_at
+            else:
+                expires_dt = None
+                
+            if expires_dt and expires_dt > datetime.utcnow():
                 # Token still valid
                 return Credentials(
                     token=teacher['google_access_token'],
@@ -85,9 +91,9 @@ def refresh_teacher_tokens(teacher_id, credentials):
         
         conn.execute('''
             UPDATE teachers 
-            SET google_access_token = ?, 
-                google_token_expires_at = ?
-            WHERE id = ?
+            SET google_access_token = %s, 
+                google_token_expires_at = %s
+            WHERE id = %s
         ''', (credentials.token, expires_at.isoformat(), teacher_id))
         conn.commit()
         
@@ -114,9 +120,9 @@ def get_classroom_service(teacher_id):
             expires_at = credentials.expiry.isoformat() if credentials.expiry else None
             conn.execute('''
                 UPDATE teachers 
-                SET google_access_token = ?, 
-                    google_token_expires_at = ?
-                WHERE id = ?
+                SET google_access_token = %s, 
+                    google_token_expires_at = %s
+                WHERE id = %s
             ''', (credentials.token, expires_at, teacher_id))
             conn.commit()
         except Exception as e:
@@ -378,7 +384,7 @@ def validate_student_in_course(course_id, student_email):
         
         # Fetch the student's Google ID from MathMind database
         student_record = conn.execute(
-            'SELECT google_id FROM students WHERE email = ?', (student_email,)
+            'SELECT google_id FROM students WHERE email = %s', (student_email,)
         ).fetchone()
         target_google_id = student_record['google_id'] if student_record else None
 
@@ -465,7 +471,7 @@ def queue_grade_sync(course_id, coursework_id, student_email, percentage):
     conn = db.get_db()
     cursor = conn.execute('''
         INSERT INTO grade_sync_queue (course_id, coursework_id, student_email, percentage, status)
-        VALUES (?, ?, ?, ?, 'pending')
+        VALUES (%s, %s, %s, %s, 'pending')
     ''', (course_id, coursework_id, student_email, percentage))
     conn.commit()
     logger.info(f"Enqueued grade sync course={course_id} coursework={coursework_id} student={student_email} pct={percentage}")
@@ -505,7 +511,7 @@ def process_grade_sync_queue():
             
             # Fetch the student's Google ID from MathMind database
             student_record = conn.execute(
-                'SELECT google_id FROM students WHERE email = ?', (item['student_email'],)
+                'SELECT google_id FROM students WHERE email = %s', (item['student_email'],)
             ).fetchone()
             target_google_id = student_record['google_id'] if student_record else None
 
@@ -536,8 +542,8 @@ def process_grade_sync_queue():
                 # Success - update queue
                 conn.execute('''
                     UPDATE grade_sync_queue 
-                    SET status = 'synced', synced_at = datetime('now')
-                    WHERE id = ?
+                    SET status = 'synced', synced_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
                 ''', (item['id'],))
                 conn.commit()
                 results['synced'] += 1
@@ -550,8 +556,8 @@ def process_grade_sync_queue():
             conn.execute('''
                 UPDATE grade_sync_queue 
                 SET retry_count = retry_count + 1,
-                    error_message = ?
-                WHERE id = ?
+                    error_message = %s
+                WHERE id = %s
             ''', ('Failed to sync - teacher disconnected or student not found', item['id']))
             conn.commit()
             results['retried'] += 1

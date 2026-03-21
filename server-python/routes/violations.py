@@ -20,7 +20,7 @@ def create_violation():
         conn = db.get_db()
         conn.execute('''
             INSERT INTO violations (attempt_id, quiz_code, student_name, violation_num, left_at, returned_at, away_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (attempt_id, quiz_code, student_name, violation_num, left_at, returned_at, away_seconds))
         conn.commit()
         
@@ -42,7 +42,7 @@ def get_violations(attempt_id):
     try:
         conn = db.get_db()
         violations = conn.execute(
-            'SELECT * FROM violations WHERE attempt_id = ? ORDER BY violation_num',
+            'SELECT * FROM violations WHERE attempt_id = %s ORDER BY violation_num',
             (attempt_id,)
         ).fetchall()
         return jsonify([dict(v) for v in violations])

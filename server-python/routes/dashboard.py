@@ -37,19 +37,19 @@ def get_dashboard():
         params = []
 
         if activity_type:
-            where.append('lower(COALESCE(activity_type, \'class_activity\')) = ?')
+            where.append('lower(COALESCE(activity_type, \'class_activity\')) = %s')
             params.append(activity_type.lower())
         if grade:
-            where.append('grade = ?')
+            where.append('grade = %s')
             params.append(grade)
         if topic:
-            where.append('lower(topic) LIKE ?')
+            where.append('lower(topic) LIKE %s')
             params.append(f'%{topic.lower()}%')
         if date_from:
-            where.append('datetime(created_at) >= datetime(?)')
+            where.append('created_at >= %s::timestamp')
             params.append(date_from)
         if date_to:
-            where.append('datetime(created_at) <= datetime(?)')
+            where.append('created_at <= %s::timestamp')
             params.append(date_to)
 
         where_clause = 'WHERE ' + ' AND '.join(where) if where else ''
@@ -62,7 +62,7 @@ def get_dashboard():
                   NULLIF((SELECT COUNT(*) FROM attempts WHERE quiz_code = code), 0) as completion_rate
             FROM quizzes
             {where_clause}
-            ORDER BY datetime(created_at) DESC
+            ORDER BY created_at DESC
         ''', params).fetchall()
 
         result = []
@@ -87,7 +87,7 @@ def get_quiz_dashboard(code):
 
         quiz = conn.execute('''
             SELECT topic, grade, q_count, activity_type
-            FROM quizzes WHERE code = ?
+            FROM quizzes WHERE code = %s
         ''', (code,)).fetchone()
 
         if not quiz:
@@ -99,7 +99,7 @@ def get_quiz_dashboard(code):
             FROM attempts a
             LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
-            WHERE a.quiz_code = ?
+            WHERE a.quiz_code = %s
             GROUP BY a.id, a.student_name, s.email, a.status, a.score, a.total, a.percentage, a.time_taken_s, a.started_at, a.completed_at
             ORDER BY a.started_at DESC
         ''', (code,)).fetchall()
@@ -118,12 +118,12 @@ def get_results(code):
         conn = db.get_db()
         code = code.upper()
 
-        attempts = conn.execute('SELECT * FROM attempts WHERE quiz_code = ?', (code,)).fetchall()
+        attempts = conn.execute('SELECT * FROM attempts WHERE quiz_code = %s', (code,)).fetchall()
         result = []
 
         for a in attempts:
-            answers = conn.execute('SELECT * FROM answers WHERE attempt_id = ?', (a['id'],)).fetchall()
-            violations = conn.execute('SELECT * FROM violations WHERE attempt_id = ?', (a['id'],)).fetchall()
+            answers = conn.execute('SELECT * FROM answers WHERE attempt_id = %s', (a['id'],)).fetchall()
+            violations = conn.execute('SELECT * FROM violations WHERE attempt_id = %s', (a['id'],)).fetchall()
             result.append({
                 **dict(a),
                 'answers': [dict(ans) for ans in answers],
@@ -141,7 +141,7 @@ def export_csv(code):
         conn = db.get_db()
         code = code.upper()
 
-        quiz = conn.execute('SELECT activity_type FROM quizzes WHERE code = ?', (code,)).fetchone()
+        quiz = conn.execute('SELECT activity_type FROM quizzes WHERE code = %s', (code,)).fetchone()
         activity_type = quiz['activity_type'] if quiz else 'class_activity'
 
         students = conn.execute('''
@@ -150,7 +150,7 @@ def export_csv(code):
             FROM attempts a
             LEFT JOIN students s ON a.student_id = s.id
             LEFT JOIN violations v ON v.attempt_id = a.id
-            WHERE a.quiz_code = ?
+            WHERE a.quiz_code = %s
             GROUP BY a.id, a.student_name, s.email, a.status, a.score, a.total, a.percentage, a.time_taken_s, a.started_at, a.completed_at
             ORDER BY a.started_at DESC
         ''', (code,)).fetchall()
@@ -191,7 +191,7 @@ def get_questions(code):
                 ROUND(AVG(CASE WHEN ans.is_correct = 1 THEN 100.0 ELSE 0.0 END), 1) as pct_correct
             FROM answers ans
             INNER JOIN attempts a ON a.id = ans.attempt_id
-            WHERE a.quiz_code = ?
+            WHERE a.quiz_code = %s
             GROUP BY ans.q_index, ans.q_type, ans.skill_tag, ans.difficulty, ans.question_text
             ORDER BY ans.q_index
         ''', (code,)).fetchall()
@@ -230,7 +230,7 @@ def get_skills(code):
                 SUM(CASE WHEN ans.is_correct = 1 THEN 1 ELSE 0 END) as total_correct
             FROM answers ans
             INNER JOIN attempts a ON a.id = ans.attempt_id
-            WHERE a.quiz_code = ?
+            WHERE a.quiz_code = %s
             GROUP BY COALESCE(NULLIF(TRIM(ans.skill_tag), ''), 'General')
             ORDER BY avg_pct ASC
         ''', (code,)).fetchall()
@@ -266,8 +266,8 @@ def get_student_growth(student_id):
                 q.topic
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ? AND a.completed_at IS NOT NULL
-            ORDER BY datetime(a.completed_at) ASC
+            WHERE a.student_id = %s AND a.completed_at IS NOT NULL
+            ORDER BY a.completed_at ASC
         ''', (student_id,)).fetchall()
 
         result = []
@@ -293,12 +293,12 @@ def get_progress(code):
 
         progress = conn.execute('''
             SELECT
-                DATE(a.completed_at) as date,
+                a.completed_at::date as date,
                 AVG(a.percentage) as avg_score,
                 COUNT(*) as attempts
             FROM attempts a
-            WHERE a.quiz_code = ? AND a.completed_at IS NOT NULL
-            GROUP BY DATE(a.completed_at)
+            WHERE a.quiz_code = %s AND a.completed_at IS NOT NULL
+            GROUP BY a.completed_at::date
             ORDER BY date ASC
         ''', (code,)).fetchall()
 
@@ -321,7 +321,7 @@ def get_live(code):
         conn = db.get_db()
         code = code.upper()
 
-        quiz = conn.execute('SELECT * FROM quizzes WHERE code = ?', (code,)).fetchone()
+        quiz = conn.execute('SELECT * FROM quizzes WHERE code = %s', (code,)).fetchone()
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
 
@@ -341,18 +341,18 @@ def get_live(code):
                 a.completed_at,
                 a.last_activity_at,
                 (SELECT COUNT(*) FROM violations WHERE attempt_id = a.id) as violation_count,
-                (SELECT GROUP_CONCAT(json_object('left_at', left_at, 'returned_at', returned_at, 'away_seconds', away_seconds))
+                (SELECT STRING_AGG(json_build_object('left_at', left_at, 'returned_at', returned_at, 'away_seconds', away_seconds)::text, ',')
                  FROM violations WHERE attempt_id = a.id) as violations_json
             FROM attempts a
             LEFT JOIN students s ON a.student_id = s.id
-            WHERE a.quiz_code = ?
+            WHERE a.quiz_code = %s
             ORDER BY
                 CASE a.status
                     WHEN 'completed' THEN 1
                     WHEN 'force_submitted' THEN 2
                     ELSE 0
                 END,
-                datetime(a.started_at) ASC
+                a.started_at ASC
         ''', (code,)).fetchall()
 
         students = []
@@ -417,7 +417,15 @@ def get_live(code):
 
             if s['is_active'] and s['last_activity_at']:
                 try:
-                    last_activity = datetime.fromisoformat(s['last_activity_at'].replace('Z', '+00:00'))
+                    if isinstance(s['last_activity_at'], str):
+                        last_activity = datetime.fromisoformat(s['last_activity_at'].replace('Z', '+00:00'))
+                    else:
+                        last_activity = s['last_activity_at']
+                    
+                    # Ensure last_activity is naive if now is naive, or both aware
+                    if last_activity.tzinfo is not None:
+                        last_activity = last_activity.replace(tzinfo=None)
+                        
                     minutes_since = int((now - last_activity).total_seconds() / 60)
                     if minutes_since >= 5:
                         alerts.append({
@@ -478,7 +486,7 @@ def send_message(code, attempt_id):
 
     try:
         conn = db.get_db()
-        attempt = conn.execute('SELECT socket_id, student_name FROM attempts WHERE id = ?', (attempt_id,)).fetchone()
+        attempt = conn.execute('SELECT socket_id, student_name FROM attempts WHERE id = %s', (attempt_id,)).fetchone()
 
         if not attempt:
             return jsonify({'error': 'Student attempt not found'}), 404

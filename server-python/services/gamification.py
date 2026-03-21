@@ -4,7 +4,7 @@ Provides badge and quest tracking functionality.
 FIXED: Match Node.js response structure exactly for frontend compatibility.
 """
 import json
-from datetime import datetime, timedelta
+import datetime
 
 
 def to_int(value, fallback=0):
@@ -23,29 +23,39 @@ def to_float(value, fallback=0):
         return fallback
 
 
-def iso_date_utc(date=None):
+def iso_date_utc(date_val=None):
     """Get ISO date string (YYYY-MM-DD) in UTC."""
-    if date is None:
-        date = datetime.utcnow()
-    return date.strftime('%Y-%m-%d')
+    if date_val is None:
+        date_val = datetime.datetime.utcnow()
+    if isinstance(date_val, (datetime.datetime, datetime.date)):
+        return date_val.strftime('%Y-%m-%d')
+    return str(date_val)
 
 
 def add_days(date_str, delta_days):
     """Add days to a date string."""
-    dt = datetime.strptime(date_str, '%Y-%m-%d')
-    dt = dt + timedelta(days=delta_days)
+    dt = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+    dt = dt + datetime.timedelta(days=delta_days)
     return dt.strftime('%Y-%m-%d')
 
 
-def start_of_iso_week(date_str):
+def start_of_iso_week(date_val):
     """Get the Monday of the ISO week for a given date."""
-    try:
-        dt = datetime.strptime(date_str, '%Y-%m-%d')
-    except:
-        dt = datetime.utcnow()
+    if isinstance(date_val, str):
+        try:
+            dt = datetime.datetime.strptime(date_val, '%Y-%m-%d')
+        except:
+            dt = datetime.datetime.utcnow()
+    elif isinstance(date_val, (datetime.datetime, datetime.date)):
+        dt = date_val
+    else:
+        dt = datetime.datetime.utcnow()
     
     # Get Monday of this week (Monday=0)
-    monday = dt - timedelta(days=dt.weekday())
+    monday = dt - datetime.timedelta(days=dt.weekday())
+    # Return as string for consistency with existing calls
+    if isinstance(monday, datetime.datetime):
+        return monday.strftime('%Y-%m-%d')
     return monday.strftime('%Y-%m-%d')
 
 
@@ -84,7 +94,7 @@ def get_badge_definition_map(conn):
                 'name': row['name'],
                 'description': row['description'] or '',
                 'icon': row['icon'] or 'badge',
-                'active': to_int(row['active'], 1) == 1,
+                'active': bool(row['active']),
             }
     except:
         pass
@@ -98,7 +108,7 @@ def get_active_quest_definitions(conn):
         rows = conn.execute('''
             SELECT code, name, description, metric, target_value, reward_xp
             FROM quest_definitions
-            WHERE active = 1
+            WHERE active = TRUE
             ORDER BY id ASC
         ''').fetchall()
         
@@ -127,9 +137,9 @@ def get_weekly_metrics(conn, student_id, week_start):
                 SUM(CASE WHEN percentage >= 90 THEN 1 ELSE 0 END) as high_scores,
                 SUM(CASE WHEN percentage >= 100 THEN 1 ELSE 0 END) as perfect_scores
             FROM attempts
-            WHERE student_id = ?
+            WHERE student_id = %s
               AND completed_at IS NOT NULL
-              AND date(completed_at) >= date(?)
+              AND completed_at::date >= %s::date
         ''', (student_id, week_start)).fetchone()
         
         return {
@@ -164,7 +174,7 @@ def compute_quest_states(conn, student_id, week_start):
         # Check if already claimed
         claimed_row = conn.execute('''
             SELECT id FROM student_quest_claims
-            WHERE student_id = ? AND quest_code = ? AND week_start = ?
+            WHERE student_id = %s AND quest_code = %s AND week_start = %s
         ''', (student_id, quest['code'], week_start)).fetchone()
         claimed = claimed_row is not None
         
@@ -208,7 +218,7 @@ def get_student_badges(conn, student_id):
         rows = conn.execute('''
             SELECT badge_code, unlocked_at
             FROM student_badges
-            WHERE student_id = ?
+            WHERE student_id = %s
             ORDER BY unlocked_at DESC
         ''', (student_id,)).fetchall()
         
@@ -237,7 +247,7 @@ def award_badge_if_eligible(conn, student_id, badge_code):
     # Check if already has badge
     existing = conn.execute('''
         SELECT id FROM student_badges
-        WHERE student_id = ? AND badge_code = ?
+        WHERE student_id = %s AND badge_code = %s
     ''', (student_id, badge_code)).fetchone()
     
     if existing:
@@ -246,13 +256,13 @@ def award_badge_if_eligible(conn, student_id, badge_code):
     # Award badge
     conn.execute('''
         INSERT INTO student_badges (student_id, badge_code, unlocked_at)
-        VALUES (?, ?, datetime('now'))
+        VALUES (%s, %s, CURRENT_TIMESTAMP)
     ''', (student_id, badge_code))
     
     # Log event
     conn.execute('''
         INSERT INTO gamification_events (student_id, event_type, points, detail_json)
-        VALUES (?, 'badge_earned', 0, ?)
+        VALUES (%s, 'badge_earned', 0, %s)
     ''', (student_id, json.dumps({'badge_code': badge_code})))
     
     return {
@@ -270,7 +280,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     """
     # Get student info
     student = conn.execute('''
-        SELECT * FROM students WHERE id = ?
+        SELECT * FROM students WHERE id = %s
     ''', (student_id,)).fetchone()
     
     if not student:
@@ -281,8 +291,8 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     time_s = max(0, to_int(time_taken_seconds, 0))
     sec_per_question = time_s / total if total > 0 else 0
     
-    today = iso_date_utc()
-    yesterday = add_days(today, -1)
+    today_date = datetime.datetime.utcnow().date()
+    yesterday_date = today_date - datetime.timedelta(days=1)
     previous_streak = to_int(student['streak_days'], 0)
     previous_best_streak = to_int(student['best_streak_days'], 0)
     total_quizzes_before = to_int(student['total_quizzes'], 0)
@@ -291,9 +301,9 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     last_activity = student['last_activity_date']
     if not last_activity:
         streak_after = 1
-    elif last_activity == today:
+    elif last_activity == today_date:
         streak_after = previous_streak if previous_streak > 0 else 1
-    elif last_activity == yesterday:
+    elif last_activity == yesterday_date:
         streak_after = previous_streak + 1
     else:
         streak_after = 1
@@ -305,9 +315,9 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
         prior_rows = conn.execute('''
             SELECT percentage
             FROM attempts
-            WHERE student_id = ?
+            WHERE student_id = %s
               AND completed_at IS NOT NULL
-              AND id <> ?
+              AND id <> %s
             ORDER BY completed_at DESC
             LIMIT 5
         ''', (student_id, attempt_id)).fetchall()
@@ -326,11 +336,11 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
         same_quiz_row = conn.execute('''
             SELECT COUNT(*) as cnt
             FROM attempts
-            WHERE student_id = ?
-              AND quiz_code = ?
+            WHERE student_id = %s
+              AND quiz_code = %s
               AND completed_at IS NOT NULL
-              AND datetime(completed_at) >= datetime('now', '-1 day')
-              AND id <> ?
+              AND completed_at >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+              AND id <> %s
         ''', (student_id, quiz_code, attempt_id)).fetchone()
         same_quiz_recent_count = to_int(same_quiz_row['cnt'], 0) if same_quiz_row else 0
     except:
@@ -368,7 +378,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     quiz_xp = max(15, round(raw_xp * anti_farming_multiplier))
     
     # Process quests
-    week_start = start_of_iso_week(today)
+    week_start = start_of_iso_week(today_date)
     quest_states = compute_quest_states(conn, student_id, week_start)
     claimed_quests = []
     quest_xp = 0
@@ -379,10 +389,10 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
         
         conn.execute('''
             INSERT INTO student_quest_claims (student_id, quest_code, week_start, points_awarded)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
         ''', (student_id, quest['code'], week_start, quest['reward_xp']))
         
-        quest_xp += quest['reward_xp']
+        quest_xp += to_int(quest.get('reward_xp', 0), 0)
         claimed_quests.append({
             'code': quest['code'],
             'name': quest['name'],
@@ -393,15 +403,15 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     xp_before = to_int(student['xp'], 0)
     level_before = max(1, to_int(student['level'], 1))
     total_quizzes_after = total_quizzes_before + 1
-    xp_after = xp_before + total_xp_gain
+    xp_after = xp_before + to_int(total_xp_gain, 0)
     level_after = level_from_xp(xp_after)
     
     # Update student
     conn.execute('''
         UPDATE students
-        SET xp = ?, level = ?, streak_days = ?, best_streak_days = ?, total_quizzes = ?, last_activity_date = ?
-        WHERE id = ?
-    ''', (xp_after, level_after, streak_after, best_streak_after, total_quizzes_after, today, student_id))
+        SET xp = %s, level = %s, streak_days = %s, best_streak_days = %s, total_quizzes = %s, last_activity_date = %s
+        WHERE id = %s
+    ''', (xp_after, level_after, streak_after, best_streak_after, total_quizzes_after, today_date, student_id))
     
     # Award badges
     unlocked_badges = []
@@ -411,7 +421,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
         high_score_row = conn.execute('''
             SELECT COUNT(*) as cnt
             FROM attempts
-            WHERE student_id = ?
+            WHERE student_id = %s
               AND completed_at IS NOT NULL
               AND percentage >= 90
         ''', (student_id,)).fetchone()
@@ -475,7 +485,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
         auto_badges = conn.execute('''
             SELECT code, name, description, icon, auto_award, criteria_type, target_value
             FROM badge_definitions
-            WHERE active = 1 AND auto_award = 1
+            WHERE active = TRUE AND auto_award = TRUE
         ''').fetchall()
         
         for badge in auto_badges:
@@ -485,7 +495,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
             # Check if already has badge
             existing = conn.execute('''
                 SELECT 1 FROM student_badges
-                WHERE student_id = ? AND badge_code = ?
+                WHERE student_id = %s AND badge_code = %s
             ''', (student_id, badge['code'])).fetchone()
             if existing:
                 continue
@@ -508,7 +518,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
                     correct_row = conn.execute('''
                         SELECT COUNT(*) as cnt FROM answers ans
                         INNER JOIN attempts a ON a.id = ans.attempt_id
-                        WHERE a.student_id = ? AND ans.is_correct = 1
+                        WHERE a.student_id = %s AND ans.is_correct = 1
                     ''', (student_id,)).fetchone()
                     should_award = to_int(correct_row['cnt'], 0) >= target_value
                 except:
@@ -524,7 +534,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     # Log gamification events
     conn.execute('''
         INSERT INTO gamification_events (student_id, attempt_id, event_type, points, detail_json)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     ''', (
         student_id,
         attempt_id,
@@ -546,7 +556,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
     for quest in claimed_quests:
         conn.execute('''
             INSERT INTO gamification_events (student_id, attempt_id, event_type, points, detail_json)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (
             student_id,
             attempt_id,

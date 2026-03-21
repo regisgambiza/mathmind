@@ -42,7 +42,7 @@ def pct(part, total):
 
 
 def get_setting(conn, key, fallback=None):
-    row = conn.execute('SELECT value_json FROM admin_settings WHERE setting_key = ?', (key,)).fetchone()
+    row = conn.execute('SELECT value_json FROM admin_settings WHERE setting_key = %s', (key,)).fetchone()
     if not row:
         return fallback
     parsed = safe_parse_json(row['value_json'], fallback)
@@ -52,11 +52,11 @@ def get_setting(conn, key, fallback=None):
 def set_setting(conn, key, value, updated_by='admin'):
     conn.execute('''
         INSERT INTO admin_settings (setting_key, value_json, updated_by, updated_at)
-        VALUES (?, ?, ?, datetime('now'))
+        VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
         ON CONFLICT(setting_key) DO UPDATE SET
             value_json = excluded.value_json,
             updated_by = excluded.updated_by,
-            updated_at = datetime('now')
+            updated_at = CURRENT_TIMESTAMP
     ''', (key, json.dumps(value), updated_by))
     conn.commit()
 
@@ -72,7 +72,7 @@ def list_feature_flags(conn):
     for row in rows:
         result.append({
             'key': row['flag_key'],
-            'enabled': to_int(row['enabled'], 0) == 1,
+            'enabled': bool(row['enabled']),
             'rollout_pct': to_int(row['rollout_pct'], 100),
             'config': safe_parse_json(row['config_json'], {}),
             'updated_by': row['updated_by'],
@@ -85,15 +85,14 @@ def get_feature_flag(conn, flag_key):
     return conn.execute('''
         SELECT flag_key, enabled, rollout_pct, config_json, updated_by, updated_at
         FROM feature_flags
-        WHERE flag_key = ?
+        WHERE flag_key = %s
     ''', (flag_key,)).fetchone()
 
 
 def set_feature_flag(conn, key, payload, actor='admin'):
     existing = get_feature_flag(conn, key)
 
-    next_enabled = payload.get('enabled', to_int(existing['enabled'], 1) == 1 if existing else True)
-    next_enabled = 1 if next_enabled else 0
+    next_enabled = payload.get('enabled', bool(existing['enabled']) if existing else True)
 
     existing_rollout = to_int(existing['rollout_pct'], 100) if existing else 100
     next_rollout = max(0, min(100, to_int(payload.get('rollout_pct'), existing_rollout)))
@@ -103,19 +102,19 @@ def set_feature_flag(conn, key, payload, actor='admin'):
 
     conn.execute('''
         INSERT INTO feature_flags (flag_key, enabled, rollout_pct, config_json, updated_by, updated_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         ON CONFLICT(flag_key) DO UPDATE SET
             enabled = excluded.enabled,
             rollout_pct = excluded.rollout_pct,
             config_json = excluded.config_json,
             updated_by = excluded.updated_by,
-            updated_at = datetime('now')
+            updated_at = CURRENT_TIMESTAMP
     ''', (key, next_enabled, next_rollout, json.dumps(next_config), actor))
     conn.commit()
 
     return {
         'key': key,
-        'enabled': next_enabled == 1,
+        'enabled': bool(next_enabled),
         'rollout_pct': next_rollout,
         'config': next_config,
     }
@@ -124,7 +123,7 @@ def set_feature_flag(conn, key, payload, actor='admin'):
 def log_audit(conn, actor='admin', action='', target_type=None, target_id=None, reason='', detail=None):
     conn.execute('''
         INSERT INTO audit_logs (actor, action, target_type, target_id, reason, detail_json)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
     ''', (
         actor,
         action,
@@ -154,10 +153,10 @@ def build_admin_overview(conn, uptime_seconds=None):
     plan_stats_row = conn.execute('''
         SELECT
             COUNT(*) as total_7d,
-            SUM(CASE WHEN fallback_used = 1 THEN 1 ELSE 0 END) as fallback_7d,
+            SUM(CASE WHEN fallback_used = TRUE THEN 1 ELSE 0 END) as fallback_7d,
             MAX(created_at) as last_plan_generated
         FROM adaptive_plan_events
-        WHERE datetime(created_at) >= datetime('now', '-7 day')
+        WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
     ''').fetchone()
     plan_stats = dict(plan_stats_row) if plan_stats_row else {}
 
@@ -172,7 +171,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             MAX(a.completed_at) as last_completed_at
         FROM students s
         LEFT JOIN attempts a ON a.student_id = s.id AND a.completed_at IS NOT NULL
-        LEFT JOIN answers ans ON ans.attempt_id = a.id AND COALESCE(ans.excluded, 0) = 0
+        LEFT JOIN answers ans ON ans.attempt_id = a.id AND ans.excluded = FALSE
         GROUP BY s.id
         HAVING COUNT(ans.id) > 0
     ''').fetchall()
@@ -238,7 +237,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         INNER JOIN attempts a ON a.id = ans.attempt_id
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND COALESCE(ans.excluded, 0) = 0
+          AND ans.excluded = FALSE
         GROUP BY COALESCE(q.class_name, q.code), COALESCE(q.section_name, q.grade), COALESCE(q.topic, 'General'),
                  COALESCE(NULLIF(TRIM(ans.skill_tag), ''), COALESCE(q.chapter, q.topic, 'General'))
         ORDER BY samples DESC
@@ -269,7 +268,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         INNER JOIN attempts a ON a.id = ans.attempt_id
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND COALESCE(ans.excluded, 0) = 0
+          AND ans.excluded = FALSE
         GROUP BY COALESCE(q.class_name, q.code), q.code
         ORDER BY total_answers DESC
         LIMIT 120
@@ -302,9 +301,9 @@ def build_admin_overview(conn, uptime_seconds=None):
         INNER JOIN attempts a ON a.id = ans.attempt_id
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND COALESCE(ans.excluded, 0) = 0
+          AND ans.excluded = FALSE
           AND ans.question_text IS NOT NULL
-        ORDER BY datetime(a.completed_at) DESC
+        ORDER BY a.completed_at DESC
         LIMIT 5000
     ''').fetchall()
 
@@ -367,7 +366,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         LEFT JOIN violations v ON v.attempt_id = a.id
         LEFT JOIN answers ans ON ans.attempt_id = a.id
         GROUP BY a.id, a.quiz_code, a.student_name, a.status, a.started_at, a.completed_at, a.percentage
-        ORDER BY datetime(a.started_at) DESC
+        ORDER BY a.started_at DESC
         LIMIT 300
     ''').fetchall()
 
@@ -428,7 +427,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         SELECT s.*, q.topic, q.grade
         FROM assignment_schedules s
         LEFT JOIN quizzes q ON q.code = s.quiz_code
-        ORDER BY datetime(s.release_at) DESC, datetime(s.created_at) DESC
+        ORDER BY s.release_at DESC, s.created_at DESC
         LIMIT 100
     ''').fetchall()
 
@@ -444,15 +443,15 @@ def build_admin_overview(conn, uptime_seconds=None):
             SUM(CASE WHEN a.completed_at IS NOT NULL THEN 1 ELSE 0 END) as completed_count,
             AVG(
                 CASE
-                    WHEN a.completed_at IS NULL THEN (strftime('%s', 'now') - strftime('%s', a.started_at))
+                    WHEN a.completed_at IS NULL THEN (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) - EXTRACT(EPOCH FROM a.started_at))
                     ELSE a.time_taken_s
                 END
             ) as avg_elapsed_s
         FROM quizzes q
         LEFT JOIN attempts a ON a.quiz_code = q.code
-          AND datetime(a.started_at) >= datetime('now', '-2 day')
+          AND a.started_at >= CURRENT_TIMESTAMP - INTERVAL '2 days'
         GROUP BY q.code
-        ORDER BY datetime(q.created_at) DESC
+        ORDER BY q.created_at DESC
         LIMIT 60
     ''').fetchall()
 
@@ -490,7 +489,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM attempts a
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND datetime(a.completed_at) >= datetime('now', '-30 day')
+          AND a.completed_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
         GROUP BY COALESCE(q.class_name, q.code), COALESCE(q.section_name, q.grade), q.grade
     ''').fetchall()
 
@@ -504,8 +503,8 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM attempts a
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND datetime(a.completed_at) >= datetime('now', '-60 day')
-          AND datetime(a.completed_at) < datetime('now', '-30 day')
+          AND a.completed_at >= CURRENT_TIMESTAMP - INTERVAL '60 days'
+          AND a.completed_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
         GROUP BY COALESCE(q.class_name, q.code), COALESCE(q.section_name, q.grade), q.grade
     ''').fetchall()
 
@@ -568,7 +567,7 @@ def build_admin_overview(conn, uptime_seconds=None):
     recent_overrides = conn.execute('''
         SELECT *
         FROM manual_overrides
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT 30
     ''').fetchall()
 
@@ -585,7 +584,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         SELECT pa.id, pa.student_id, s.name as student_name, pa.alert_type, pa.message, pa.status, pa.created_at
         FROM parent_alerts pa
         LEFT JOIN students s ON s.id = pa.student_id
-        ORDER BY datetime(pa.created_at) DESC
+        ORDER BY pa.created_at DESC
         LIMIT 30
     ''').fetchall()
 
@@ -593,7 +592,7 @@ def build_admin_overview(conn, uptime_seconds=None):
     recent_audit = conn.execute('''
         SELECT *
         FROM audit_logs
-        ORDER BY datetime(created_at) DESC
+        ORDER BY created_at DESC
         LIMIT 100
     ''').fetchall()
 
@@ -605,7 +604,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) as server_errors,
             SUM(CASE WHEN event_type = 'generation_error' THEN 1 ELSE 0 END) as generation_errors
         FROM system_events
-        WHERE datetime(created_at) >= datetime('now', '-24 hour')
+        WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
     ''').fetchone()
     system_24h = dict(system_24h_row) if system_24h_row else {}
 
@@ -624,14 +623,14 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM data_requests dr
         LEFT JOIN students s ON s.id = dr.student_id
         WHERE dr.status = 'pending'
-        ORDER BY datetime(dr.created_at) DESC
+        ORDER BY dr.created_at DESC
         LIMIT 100
     ''').fetchall()
 
     consent_stats_row = conn.execute('''
         SELECT
-            SUM(CASE WHEN consent_opt_in = 1 THEN 1 ELSE 0 END) as opted_in,
-            SUM(CASE WHEN consent_opt_in = 0 THEN 1 ELSE 0 END) as opted_out,
+            SUM(CASE WHEN consent_opt_in = TRUE THEN 1 ELSE 0 END) as opted_in,
+            SUM(CASE WHEN consent_opt_in = FALSE THEN 1 ELSE 0 END) as opted_out,
             COUNT(*) as total_students
         FROM students
     ''').fetchone()
@@ -805,7 +804,7 @@ def get_assignments():
             SELECT s.*, q.topic, q.grade
             FROM assignment_schedules s
             LEFT JOIN quizzes q ON q.code = s.quiz_code
-            ORDER BY datetime(s.release_at) DESC
+            ORDER BY s.release_at DESC
         ''').fetchall()
         return jsonify([dict(r) for r in rows])
     except Exception as e:
@@ -826,13 +825,13 @@ def create_assignment():
         created_by = data.get('created_by', 'admin')
 
         # Verify quiz exists
-        quiz = conn.execute('SELECT code FROM quizzes WHERE code = ?', (quiz_code,)).fetchone()
+        quiz = conn.execute('SELECT code FROM quizzes WHERE code = %s', (quiz_code,)).fetchone()
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
 
         cursor = conn.execute('''
             INSERT INTO assignment_schedules (quiz_code, class_name, section_name, release_at, close_at, status, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (quiz_code, class_name, section_name, release_at, close_at, status, created_by))
         conn.commit()
 
@@ -860,7 +859,7 @@ def update_assignment(id):
         values = []
         for field in ['status', 'release_at', 'close_at', 'class_name', 'section_name']:
             if field in data:
-                fields.append(f'{field} = ?')
+                fields.append(f'{field} = %s')
                 values.append(data[field])
 
         if not fields:
@@ -869,8 +868,8 @@ def update_assignment(id):
         values.append(id)
         conn.execute(f'''
             UPDATE assignment_schedules
-            SET {', '.join(fields)}, updated_at = datetime('now')
-            WHERE id = ?
+            SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
         ''', values)
         conn.commit()
 
@@ -904,7 +903,7 @@ def create_question_set():
         
         cursor = conn.execute('''
             INSERT INTO generated_question_sets (quiz_code, attempt_id, student_id, questions_json, status)
-            VALUES (?, ?, ?, ?, 'pending')
+            VALUES (%s, %s, %s, %s, 'pending')
         ''', (quiz_code, attempt_id, student_id, json.dumps(questions)))
         conn.commit()
         
@@ -922,14 +921,14 @@ def get_question_sets():
         if status:
             rows = conn.execute('''
                 SELECT * FROM generated_question_sets
-                WHERE status = ?
-                ORDER BY datetime(created_at) DESC
+                WHERE status = %s
+                ORDER BY created_at DESC
                 LIMIT 300
             ''', (status,)).fetchall()
         else:
             rows = conn.execute('''
                 SELECT * FROM generated_question_sets
-                ORDER BY datetime(created_at) DESC
+                ORDER BY created_at DESC
                 LIMIT 300
             ''').fetchall()
         
@@ -963,9 +962,9 @@ def update_question_set(id):
         
         conn.execute('''
             UPDATE generated_question_sets
-            SET status = ?, reviewer = ?, notes = ?, 
-                reviewed_at = CASE WHEN ? IN ('approved', 'rejected') THEN datetime('now') ELSE reviewed_at END
-            WHERE id = ?
+            SET status = %s, reviewer = %s, notes = %s, 
+                reviewed_at = CASE WHEN %s IN ('approved', 'rejected') THEN CURRENT_TIMESTAMP ELSE reviewed_at END
+            WHERE id = %s
         ''', (status, reviewer, notes, status, question_id))
         conn.commit()
         
@@ -990,7 +989,7 @@ def create_system_event():
         conn = db.get_db()
         conn.execute('''
             INSERT INTO system_events (event_type, level, message, path, detail_json)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (
             data.get('event_type', 'unknown'),
             data.get('level', 'info'),
@@ -1011,8 +1010,8 @@ def get_audit_logs():
         limit = min(to_int(request.args.get('limit', 100), 100), 500)
         rows = conn.execute('''
             SELECT * FROM audit_logs
-            ORDER BY datetime(created_at) DESC
-            LIMIT ?
+            ORDER BY created_at DESC
+            LIMIT %s
         ''', (limit,)).fetchall()
         return jsonify([dict(r) for r in rows])
     except Exception as e:

@@ -90,7 +90,7 @@ def start_practice():
         conn = db.get_db()
 
         # Verify student exists
-        student = conn.execute('SELECT id, name FROM students WHERE id = ?', (student_id,)).fetchone()
+        student = conn.execute('SELECT id, name FROM students WHERE id = %s', (student_id,)).fetchone()
         if not student:
             return jsonify({'error': 'Student not found'}), 404
 
@@ -101,7 +101,7 @@ def start_practice():
         target_subtopics = []
 
         if mode == 'quiz_prep':
-            quiz_info = conn.execute('SELECT * FROM quizzes WHERE code = ?', (quiz_code.upper(),)).fetchone()
+            quiz_info = conn.execute('SELECT * FROM quizzes WHERE code = %s', (quiz_code.upper(),)).fetchone()
             if not quiz_info:
                 return jsonify({'error': 'Quiz not found'}), 404
             target_topic = quiz_info['topic']
@@ -145,7 +145,7 @@ def start_practice():
             INSERT INTO quizzes (
                 code, topic, chapter, subtopic, activity_type, grade,
                 question_types, q_count, extra_instructions
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             practice_code,
             target_topic or 'Practice',
@@ -167,7 +167,7 @@ def start_practice():
         # Create attempt for this practice session
         cursor = conn.execute('''
             INSERT INTO attempts (quiz_code, student_id, student_name, status)
-            VALUES (?, ?, ?, 'practice')
+            VALUES (%s, %s, %s, 'practice')
         ''', (practice_code, student_id, student['name']))
         conn.commit()
 
@@ -225,7 +225,7 @@ def get_next_adaptive_question():
             SELECT a.*, q.topic, q.chapter, q.grade, q.question_types
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.id = ?
+            WHERE a.id = %s
         ''', (attempt_id,)).fetchone()
         
         if not attempt:
@@ -503,7 +503,7 @@ def submit_practice():
             SELECT a.*, q.activity_type
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.id = ?
+            WHERE a.id = %s
         ''', (attempt_id,)).fetchone()
 
         if not attempt:
@@ -523,7 +523,7 @@ def submit_practice():
         conn.execute('''
             INSERT INTO answers
             (attempt_id, q_index, q_type, skill_tag, difficulty, question_text, student_answer, correct_answer, is_correct, time_taken_s)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             attempt_id,
             q_index,
@@ -539,7 +539,7 @@ def submit_practice():
         conn.commit()
 
         # Get updated attempt stats
-        answers = conn.execute('SELECT * FROM answers WHERE attempt_id = ?', (attempt_id,)).fetchall()
+        answers = conn.execute('SELECT * FROM answers WHERE attempt_id = %s', (attempt_id,)).fetchall()
         correct_count = sum(1 for a in answers if a['is_correct'] == 1)
         total_count = len(answers)
         percentage = round((correct_count / total_count) * 100) if total_count > 0 else 0
@@ -547,8 +547,8 @@ def submit_practice():
         # Update attempt progress
         conn.execute('''
             UPDATE attempts
-            SET score = ?, total = ?, percentage = ?
-            WHERE id = ?
+            SET score = %s, total = %s, percentage = %s
+            WHERE id = %s
         ''', (correct_count, total_count, percentage, attempt_id))
         conn.commit()
 
@@ -582,7 +582,7 @@ def complete_practice():
             SELECT a.*, q.activity_type, q.topic, q.chapter
             FROM attempts a
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.id = ?
+            WHERE a.id = %s
         ''', (attempt_id,)).fetchone()
 
         if not attempt:
@@ -594,8 +594,8 @@ def complete_practice():
         # Mark as completed
         conn.execute('''
             UPDATE attempts
-            SET status = 'completed', completed_at = datetime('now')
-            WHERE id = ?
+            SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+            WHERE id = %s
         ''', (attempt_id,))
         conn.commit()
 
@@ -604,15 +604,15 @@ def complete_practice():
 
         conn.execute('''
             UPDATE students
-            SET xp = xp + ?, total_quizzes = total_quizzes + 1, last_activity_date = date('now')
-            WHERE id = ?
+            SET xp = xp + %s, total_quizzes = total_quizzes + 1, last_activity_date = CURRENT_DATE
+            WHERE id = %s
         ''', (xp_earned, attempt['student_id']))
         conn.commit()
 
         # Log gamification event
         conn.execute('''
             INSERT INTO gamification_events (student_id, attempt_id, event_type, points, detail_json)
-            VALUES (?, ?, 'practice_complete', ?, ?)
+            VALUES (%s, %s, 'practice_complete', %s, %s)
         ''', (
             attempt['student_id'],
             attempt_id,
@@ -656,7 +656,7 @@ def get_recommendations(student_id):
             FROM answers ans
             INNER JOIN attempts a ON a.id = ans.attempt_id
             LEFT JOIN quizzes q ON q.code = a.quiz_code
-            WHERE a.student_id = ? AND a.completed_at IS NOT NULL
+            WHERE a.student_id = %s AND a.completed_at IS NOT NULL
             GROUP BY COALESCE(NULLIF(TRIM(ans.skill_tag), ''), COALESCE(q.chapter, q.topic, 'General'))
             HAVING COUNT(*) >= 1
             ORDER BY accuracy_ratio ASC, questions_answered DESC
@@ -668,8 +668,8 @@ def get_recommendations(student_id):
             SELECT DISTINCT q.code, q.topic, q.chapter, q.release_at, q.close_at
             FROM quizzes q
             WHERE q.activity_type = 'class_activity'
-              AND (q.release_at IS NULL OR datetime(q.release_at) <= datetime('now'))
-              AND (q.close_at IS NULL OR datetime(q.close_at) > datetime('now'))
+              AND (q.release_at IS NULL OR q.release_at <= CURRENT_TIMESTAMP)
+              AND (q.close_at IS NULL OR q.close_at > CURRENT_TIMESTAMP)
             LIMIT 5
         ''').fetchall()
 
@@ -730,7 +730,7 @@ def get_recommendations(student_id):
 def get_quiz_practice(code):
     try:
         conn = db.get_db()
-        quiz = conn.execute('SELECT * FROM quizzes WHERE code = ?', (code.upper(),)).fetchone()
+        quiz = conn.execute('SELECT * FROM quizzes WHERE code = %s', (code.upper(),)).fetchone()
 
         if not quiz:
             return jsonify({'error': 'Quiz not found'}), 404
