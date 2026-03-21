@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 import os
 import requests
 import json
@@ -16,30 +16,30 @@ def ai_complete():
     """Proxy AI completion requests to OpenRouter securely."""
     data = request.get_json()
     prompt = data.get('prompt')
-    
+
     if not prompt:
         return jsonify({'error': 'Prompt is required'}), 400
-    
+
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if not api_key:
         logger.error("OPENROUTER_API_KEY is missing in environment variables")
         return jsonify({'error': 'AI service not configured on server'}), 503
-        
+
     try:
         logger.info(f"Forwarding AI request to OpenRouter (Prompt len: {len(prompt)})")
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {api_key}',
             'HTTP-Referer': os.environ.get('BACKEND_URL', 'http://localhost:5000'),
             'X-Title': 'MathMind AI Tutor',
         }
-        
+
         payload = {
             'model': OPENROUTER_MODEL,
             'messages': [{'role': 'user', 'content': prompt}],
         }
-        
+
         response = requests.post(
             f"{OPENROUTER_BASE_URL}/chat/completions",
             headers=headers,
@@ -66,9 +66,15 @@ def ai_complete():
             return jsonify({'error': 'Invalid response format from AI service', 'detail': str(e)}), 500
 
         result = {'completion': completion_text}
-        logger.info(f"[ai/complete] Returning: {str(result)[:200]}")
-        return jsonify(result), 200
-        
+        response_json = json.dumps(result)
+        logger.info(f"[ai/complete] Returning: {response_json[:200]}")
+
+        # Use make_response to ensure proper response handling with SocketIO
+        resp = make_response(response_json, 200)
+        resp.headers['Content-Type'] = 'application/json'
+        resp.headers['Content-Length'] = str(len(response_json))
+        return resp
+
     except requests.exceptions.Timeout:
         logger.error("AI request timed out")
         return jsonify({'error': 'AI request timed out'}), 504
