@@ -38,13 +38,15 @@ def ai_complete():
         payload = {
             'model': OPENROUTER_MODEL,
             'messages': [{'role': 'user', 'content': prompt}],
+            'stream': False,  # CRITICAL: disable streaming
         }
 
         response = requests.post(
             f"{OPENROUTER_BASE_URL}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=30
+            stream=False,  # CRITICAL: do not stream the response
+            timeout=60  # Increased timeout for slow first tokens
         )
 
         if not response.ok:
