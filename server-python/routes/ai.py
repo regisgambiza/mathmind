@@ -46,15 +46,28 @@ def ai_complete():
             json=payload,
             timeout=30
         )
-        
+
         if not response.ok:
             logger.error(f"OpenRouter error: {response.status_code} - {response.text}")
             return jsonify({
                 'error': f'AI service returned an error ({response.status_code})',
                 'detail': response.json() if response.headers.get('Content-Type') == 'application/json' else response.text
             }), response.status_code
-            
-        return jsonify(response.json())
+
+        # Parse the response and extract the completion text
+        response_data = response.json()
+        logger.info(f"[ai/complete] Raw OpenRouter response: {str(response_data)[:500]}")
+
+        # Extract the actual completion text from the nested response structure
+        try:
+            completion_text = response_data['choices'][0]['message']['content']
+        except (KeyError, IndexError) as e:
+            logger.error(f"[ai/complete] Failed to parse response structure: {e}, data: {response_data}")
+            return jsonify({'error': 'Invalid response format from AI service', 'detail': str(e)}), 500
+
+        result = {'completion': completion_text}
+        logger.info(f"[ai/complete] Returning: {str(result)[:200]}")
+        return jsonify(result), 200
         
     except requests.exceptions.Timeout:
         logger.error("AI request timed out")
