@@ -14,7 +14,23 @@ export function RegisProvider({ children }) {
         console.log('[RegisContext] Prompt length:', prompt?.length || 0);
 
         try {
-            const apiBase = import.meta.env.VITE_API_URL || '';
+            // Use absolute URL for production (Render), fallback to env for local dev
+            let apiBase = import.meta.env.VITE_API_URL;
+            
+            // Ensure absolute URL - fix common mistakes (missing protocol)
+            if (apiBase) {
+                apiBase = apiBase.trim();
+                if (!apiBase.startsWith('http://') && !apiBase.startsWith('https://')) {
+                    console.warn('[RegisContext] ⚠️ VITE_API_URL missing protocol, adding https://');
+                    apiBase = `https://${apiBase}`;
+                }
+                // Remove trailing slash
+                apiBase = apiBase.replace(/\/$/, '');
+            } else {
+                // Default to Render production URL
+                apiBase = 'https://mathmind-backend.onrender.com';
+            }
+            
             const url = `${apiBase}/api/ai/complete`;
             console.log('[RegisContext] 📡 Sending request to:', url);
             console.log('[RegisContext] Request body:', JSON.stringify({ prompt }).slice(0, 200));
@@ -25,6 +41,8 @@ export function RegisProvider({ children }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ prompt }),
+                // Prevent automatic redirect handling - we want to see if we're being redirected
+                redirect: 'manual',
             });
 
             console.log('[RegisContext] 📥 Response received');
@@ -33,10 +51,26 @@ export function RegisProvider({ children }) {
             console.log('[RegisContext] Content-Type:', res.headers.get('content-type'));
             console.log('[RegisContext] Content-Length:', res.headers.get('content-length'));
 
+            // Check for redirect responses (301, 302, 307, 308)
+            if ([301, 302, 307, 308].includes(res.status)) {
+                const location = res.headers.get('location');
+                console.error('[RegisContext] 🚫 Redirect detected:', res.status, 'Location:', location);
+                throw new Error(`Redirect detected (${res.status}). Location: ${location || 'unknown'}. Check CORS configuration.`);
+            }
+
             // Read raw text first to see what we actually got
             const rawText = await res.text();
             console.log('[RegisContext] Raw response text:', rawText);
             console.log('[RegisContext] Raw text length:', rawText.length);
+
+            // Check for empty response body (common CORS preflight issue)
+            if (!rawText || rawText.trim() === '') {
+                console.error('[RegisContext] 🚫 Empty response body! This usually means:');
+                console.error('[RegisContext]   1. CORS preflight failed');
+                console.error('[RegisContext]   2. Server returned 200 OK with no body');
+                console.error('[RegisContext]   3. Request never reached the backend');
+                throw new Error('Empty response body from /api/ai/complete. Check CORS configuration and backend logs.');
+            }
 
             if (!res.ok) {
                 console.error('[RegisContext] Non-OK status');
