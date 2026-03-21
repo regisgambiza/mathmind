@@ -25,6 +25,8 @@ services:
         value: https://mathmind-backend.onrender.com
       - key: FRONTEND_URL
         value: https://mathmind-frontend-0j04.onrender.com
+      - key: OPENROUTER_API_KEY
+        sync: false # Set in Render Dashboard
 
   # Frontend: React/Vite (Static Site)
   - type: web
