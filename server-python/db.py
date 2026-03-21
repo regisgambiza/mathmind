@@ -417,12 +417,15 @@ def repair_schema(db):
             """
             row = db.fetchone(sql_check)
             if row and row['data_type'] == 'integer':
-                logger.info(f"Converting {table}.{column} from integer to boolean (default {default})...")
-                # Drop default, cast, and set new default
-                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT")
-                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean")
-                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT {default}")
+                logger.info(f"Repairing {table}.{column}: integer -> boolean (default {default})")
+                # Run as a single block to ensure sequence
+                db.execute(f"""
+                    ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;
+                    ALTER TABLE {table} ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean;
+                    ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT {default};
+                """)
                 db.commit()
+                logger.info(f"Successfully repaired {table}.{column}")
         except Exception as e:
             logger.warning(f"Failed to migrate {table}.{column}: {e}")
             db.rollback()
@@ -452,8 +455,9 @@ def init_db():
     # Seeding
     try:
         # Feature Flags
-        db.execute("INSERT INTO feature_flags (flag_key, enabled, config_json) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING", ('adaptive_engine', True, '{"mode":"mastery"}'))
-        db.execute("INSERT INTO feature_flags (flag_key, enabled, config_json) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING", ('content_approval_required', False, '{"scope":"global"}'))
+        # Use explicit casting to handle potential migration state lag
+        db.execute("INSERT INTO feature_flags (flag_key, enabled, config_json) VALUES (%s, %s::boolean, %s) ON CONFLICT DO NOTHING", ('adaptive_engine', True, '{"mode":"mastery"}'))
+        db.execute("INSERT INTO feature_flags (flag_key, enabled, config_json) VALUES (%s, %s::boolean, %s) ON CONFLICT DO NOTHING", ('content_approval_required', False, '{"scope":"global"}'))
 
         # Admin Settings
         db.execute("INSERT INTO admin_settings (setting_key, value_json) VALUES (%s, %s) ON CONFLICT DO NOTHING", ('leaderboard_controls', '{"enabled":true,"anonymize":false,"class_only":false}'))
