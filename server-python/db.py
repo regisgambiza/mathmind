@@ -393,20 +393,22 @@ def get_db():
 def repair_schema(db):
     """Ensures that boolean columns are correctly typed in PostgreSQL."""
     logger.info("Checking for schema mismatches...")
+    # (table, column, default_value)
     migrations = [
-        ('quizzes', 'posted_to_classroom'),
-        ('students', 'leaderboard_opt_in'),
-        ('students', 'consent_opt_in'),
-        ('answers', 'excluded'),
-        ('adaptive_plan_events', 'has_history'),
-        ('adaptive_plan_events', 'fallback_used'),
-        ('quest_definitions', 'active'),
-        ('badge_definitions', 'active'),
-        ('badge_definitions', 'auto_award'),
-        ('parent_contacts', 'opt_in')
+        ('quizzes', 'posted_to_classroom', 'FALSE'),
+        ('students', 'leaderboard_opt_in', 'TRUE'),
+        ('students', 'consent_opt_in', 'TRUE'),
+        ('answers', 'excluded', 'FALSE'),
+        ('adaptive_plan_events', 'has_history', 'FALSE'),
+        ('adaptive_plan_events', 'fallback_used', 'FALSE'),
+        ('quest_definitions', 'active', 'TRUE'),
+        ('badge_definitions', 'active', 'TRUE'),
+        ('badge_definitions', 'auto_award', 'TRUE'),
+        ('parent_contacts', 'opt_in', 'TRUE'),
+        ('feature_flags', 'enabled', 'TRUE')
     ]
     
-    for table, column in migrations:
+    for table, column, default in migrations:
         try:
             # Check if column is integer
             sql_check = f"""
@@ -415,8 +417,11 @@ def repair_schema(db):
             """
             row = db.fetchone(sql_check)
             if row and row['data_type'] == 'integer':
-                logger.info(f"Converting {table}.{column} from integer to boolean...")
+                logger.info(f"Converting {table}.{column} from integer to boolean (default {default})...")
+                # Drop default, cast, and set new default
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT")
                 db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean")
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT {default}")
                 db.commit()
         except Exception as e:
             logger.warning(f"Failed to migrate {table}.{column}: {e}")
