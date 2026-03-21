@@ -668,8 +668,8 @@ def get_recommendations(student_id):
             SELECT DISTINCT q.code, q.topic, q.chapter, q.release_at, q.close_at
             FROM quizzes q
             WHERE q.activity_type = 'class_activity'
-              AND (q.release_at IS NULL OR q.release_at <= CURRENT_TIMESTAMP)
-              AND (q.close_at IS NULL OR q.close_at > CURRENT_TIMESTAMP)
+              AND (q.release_at IS NULL OR q.release_at::timestamptz <= CURRENT_TIMESTAMP)
+              AND (q.close_at IS NULL OR q.close_at::timestamptz > CURRENT_TIMESTAMP)
             LIMIT 5
         ''').fetchall()
 

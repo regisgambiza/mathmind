@@ -443,7 +443,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             SUM(CASE WHEN a.completed_at IS NOT NULL THEN 1 ELSE 0 END) as completed_count,
             AVG(
                 CASE
-                    WHEN a.completed_at IS NULL THEN (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) - EXTRACT(EPOCH FROM a.started_at))
+                    WHEN a.completed_at IS NULL THEN (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) - EXTRACT(EPOCH FROM a.started_at::timestamptz))
                     ELSE a.time_taken_s
                 END
             ) as avg_elapsed_s

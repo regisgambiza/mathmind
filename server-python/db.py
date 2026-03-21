@@ -31,8 +31,8 @@ def get_schema():
         type_weights TEXT,
         q_count     INTEGER NOT NULL,
         time_limit_mins INTEGER DEFAULT 0,
-        release_at  TIMESTAMP,
-        close_at    TIMESTAMP,
+        release_at  TIMESTAMPTZ,
+        close_at    TIMESTAMPTZ,
         extra_instructions TEXT,
         class_name  TEXT,
         section_name TEXT,
@@ -42,7 +42,7 @@ def get_schema():
         coursework_id TEXT,
         posted_to_classroom BOOLEAN DEFAULT FALSE,
         created_by  TEXT,
-        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at  TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS students (
         id                SERIAL PRIMARY KEY,
@@ -58,16 +58,16 @@ def get_schema():
         leaderboard_opt_in BOOLEAN DEFAULT TRUE,
         consent_opt_in    BOOLEAN DEFAULT TRUE,
         last_activity_date DATE,
-        last_login_at     TIMESTAMP,
-        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        last_login_at     TIMESTAMPTZ,
+        created_at        TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS attempts (
         id            SERIAL PRIMARY KEY,
         quiz_code     TEXT NOT NULL REFERENCES quizzes(code),
         student_id    INTEGER REFERENCES students(id),
         student_name  TEXT NOT NULL,
-        started_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        completed_at  TIMESTAMP,
+        started_at    TIMESTAMPTZ DEFAULT NOW(),
+        completed_at  TIMESTAMPTZ,
         score         INTEGER,
         total         INTEGER,
         percentage    REAL,
@@ -78,7 +78,7 @@ def get_schema():
         rewards_json  TEXT,
         status        TEXT DEFAULT 'in_progress',
         current_question INTEGER DEFAULT 0,
-        last_activity_at TIMESTAMP,
+        last_activity_at TIMESTAMPTZ,
         socket_id     TEXT
     );
     CREATE TABLE IF NOT EXISTS answers (
@@ -93,7 +93,9 @@ def get_schema():
         student_answer TEXT,
         correct_answer TEXT,
         is_correct    INTEGER,
-        time_taken_s  INTEGER
+        time_taken_s  INTEGER,
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS violations (
         id            SERIAL PRIMARY KEY,
@@ -101,8 +103,8 @@ def get_schema():
         quiz_code     TEXT NOT NULL,
         student_name  TEXT NOT NULL,
         violation_num INTEGER NOT NULL,
-        left_at       TIMESTAMP NOT NULL,
-        returned_at   TIMESTAMP,
+        left_at       TIMESTAMPTZ NOT NULL,
+        returned_at   TIMESTAMPTZ,
         away_seconds  INTEGER
     );
     CREATE TABLE IF NOT EXISTS teachers (
@@ -114,13 +116,13 @@ def get_schema():
         name                   TEXT,
         google_refresh_token   TEXT,
         google_access_token    TEXT,
-        google_token_expires_at TIMESTAMP
+        google_token_expires_at TIMESTAMPTZ
     );
     CREATE TABLE IF NOT EXISTS student_badges (
         id          SERIAL PRIMARY KEY,
         student_id  INTEGER NOT NULL REFERENCES students(id),
         badge_code  TEXT NOT NULL,
-        unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        unlocked_at TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(student_id, badge_code)
     );
     CREATE TABLE IF NOT EXISTS student_quest_claims (
@@ -129,7 +131,7 @@ def get_schema():
         quest_code    TEXT NOT NULL,
         week_start    DATE NOT NULL,
         points_awarded INTEGER NOT NULL,
-        claimed_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        claimed_at    TIMESTAMPTZ DEFAULT NOW(),
         UNIQUE(student_id, quest_code, week_start)
     );
     CREATE TABLE IF NOT EXISTS gamification_events (
@@ -139,7 +141,7 @@ def get_schema():
         event_type    TEXT NOT NULL,
         points        INTEGER NOT NULL,
         detail_json   TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS adaptive_plan_events (
         id            SERIAL PRIMARY KEY,
@@ -154,13 +156,13 @@ def get_schema():
         recent_accuracy REAL,
         trend         TEXT,
         plan_json     TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS admin_settings (
         setting_key   TEXT PRIMARY KEY,
         value_json    TEXT NOT NULL,
         updated_by    TEXT,
-        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS feature_flags (
         flag_key      TEXT PRIMARY KEY,
@@ -168,19 +170,19 @@ def get_schema():
         rollout_pct   INTEGER DEFAULT 100,
         config_json   TEXT,
         updated_by    TEXT,
-        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS assignment_schedules (
         id            SERIAL PRIMARY KEY,
         quiz_code     TEXT NOT NULL REFERENCES quizzes(code),
         class_name    TEXT,
         section_name  TEXT,
-        release_at    TIMESTAMP,
-        close_at      TIMESTAMP,
+        release_at    TIMESTAMPTZ,
+        close_at      TIMESTAMPTZ,
         status        TEXT DEFAULT 'scheduled',
         created_by    TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS generated_question_sets (
         id            SERIAL PRIMARY KEY,
@@ -191,8 +193,8 @@ def get_schema():
         status        TEXT DEFAULT 'pending',
         reviewer      TEXT,
         notes         TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        reviewed_at   TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        reviewed_at   TIMESTAMPTZ
     );
     CREATE TABLE IF NOT EXISTS manual_overrides (
         id            SERIAL PRIMARY KEY,
@@ -202,7 +204,7 @@ def get_schema():
         new_value_json TEXT,
         reason        TEXT,
         actor         TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS parent_contacts (
         id            SERIAL PRIMARY KEY,
@@ -211,7 +213,7 @@ def get_schema():
         email         TEXT,
         phone         TEXT,
         opt_in        BOOLEAN DEFAULT TRUE,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS parent_alerts (
         id            SERIAL PRIMARY KEY,
@@ -220,8 +222,8 @@ def get_schema():
         alert_type    TEXT NOT NULL,
         message       TEXT NOT NULL,
         status        TEXT DEFAULT 'queued',
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        sent_at       TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        sent_at       TIMESTAMPTZ
     );
     CREATE TABLE IF NOT EXISTS data_requests (
         id            SERIAL PRIMARY KEY,
@@ -229,8 +231,8 @@ def get_schema():
         request_type  TEXT NOT NULL,
         status        TEXT DEFAULT 'pending',
         note          TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        resolved_at   TIMESTAMP,
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        resolved_at   TIMESTAMPTZ,
         resolved_by   TEXT
     );
     CREATE TABLE IF NOT EXISTS quest_definitions (
@@ -243,8 +245,8 @@ def get_schema():
         reward_xp     INTEGER NOT NULL,
         season_label  TEXT,
         active        BOOLEAN DEFAULT TRUE,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS badge_definitions (
         id            SERIAL PRIMARY KEY,
@@ -257,8 +259,8 @@ def get_schema():
         auto_award    BOOLEAN DEFAULT TRUE,
         criteria_type TEXT DEFAULT 'quizzes_completed',
         target_value  INTEGER DEFAULT 1,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS audit_logs (
         id            SERIAL PRIMARY KEY,
@@ -268,7 +270,7 @@ def get_schema():
         target_id     TEXT,
         reason        TEXT,
         detail_json   TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS system_events (
         id            SERIAL PRIMARY KEY,
@@ -279,7 +281,7 @@ def get_schema():
         status_code   INTEGER,
         latency_ms    REAL,
         detail_json   TEXT,
-        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at    TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS grade_sync_queue (
         id              SERIAL PRIMARY KEY,
@@ -290,8 +292,8 @@ def get_schema():
         status          TEXT DEFAULT 'pending',
         retry_count     INTEGER DEFAULT 0,
         error_message   TEXT,
-        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        synced_at       TIMESTAMP
+        created_at      TIMESTAMPTZ DEFAULT NOW(),
+        synced_at       TIMESTAMPTZ
     );
     '''
     return schema
@@ -397,10 +399,11 @@ def get_db():
     return _thread_local.db
 
 def repair_schema(db):
-    """Ensures that boolean columns are correctly typed in PostgreSQL."""
+    """Ensures that boolean and timestamp columns are correctly typed in PostgreSQL."""
     logger.info("Checking for schema mismatches...")
-    # (table, column, default_value)
-    migrations = [
+    
+    # Boolean column migrations
+    boolean_migrations = [
         ('quizzes', 'posted_to_classroom', 'FALSE'),
         ('students', 'leaderboard_opt_in', 'TRUE'),
         ('students', 'consent_opt_in', 'TRUE'),
@@ -413,22 +416,67 @@ def repair_schema(db):
         ('parent_contacts', 'opt_in', 'TRUE'),
         ('feature_flags', 'enabled', 'TRUE')
     ]
-    
-    for table, column, default in migrations:
+
+    for table, column, default in boolean_migrations:
         try:
             # Check if column is integer
             sql_check = f"""
-                SELECT data_type FROM information_schema.columns 
+                SELECT data_type FROM information_schema.columns
                 WHERE table_name = '{table}' AND column_name = '{column}'
             """
             row = db.fetchone(sql_check)
             if row and row['data_type'] == 'integer':
                 logger.info(f"Repairing {table}.{column}: integer -> boolean (default {default})")
-                # Run as a single block to ensure sequence
                 db.execute(f"""
                     ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;
                     ALTER TABLE {table} ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean;
                     ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT {default};
+                """)
+                db.commit()
+                logger.info(f"Successfully repaired {table}.{column}")
+        except Exception as e:
+            logger.warning(f"Failed to migrate {table}.{column}: {e}")
+            db.rollback()
+    
+    # Timestamp column migrations (TEXT -> TIMESTAMPTZ)
+    timestamp_migrations = [
+        ('quizzes', 'created_at'),
+        ('quizzes', 'close_at'),
+        ('quizzes', 'open_at'),
+        ('quizzes', 'release_at'),
+        ('answers', 'created_at'),
+        ('answers', 'updated_at'),
+        ('students', 'created_at'),
+        ('students', 'updated_at'),
+        ('attempts', 'created_at'),
+        ('attempts', 'started_at'),
+        ('attempts', 'completed_at'),
+        ('adaptive_plan_events', 'created_at'),
+        ('admin_settings', 'updated_at'),
+        ('feature_flags', 'updated_at'),
+        ('audit_logs', 'created_at'),
+        ('system_events', 'created_at'),
+        ('generated_question_sets', 'created_at'),
+        ('manual_overrides', 'created_at'),
+        ('parent_alerts', 'created_at'),
+        ('data_requests', 'created_at'),
+        ('assignment_schedules', 'release_at'),
+        ('assignment_schedules', 'created_at'),
+    ]
+
+    for table, column in timestamp_migrations:
+        try:
+            sql_check = f"""
+                SELECT data_type FROM information_schema.columns
+                WHERE table_name = '{table}' AND column_name = '{column}'
+            """
+            row = db.fetchone(sql_check)
+            if row and row['data_type'] == 'text':
+                logger.info(f"Repairing {table}.{column}: text -> timestamptz")
+                db.execute(f"""
+                    ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;
+                    ALTER TABLE {table} ALTER COLUMN {column} TYPE TIMESTAMPTZ USING {column}::timestamptz;
+                    ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT NOW();
                 """)
                 db.commit()
                 logger.info(f"Successfully repaired {table}.{column}")
