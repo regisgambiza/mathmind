@@ -339,7 +339,7 @@ def apply_gamification_for_attempt(conn, student_id, attempt_id, quiz_code, perc
             WHERE student_id = %s
               AND quiz_code = %s
               AND completed_at IS NOT NULL
-              AND completed_at >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+              AND completed_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '1 day'
               AND id <> %s
         ''', (student_id, quiz_code, attempt_id)).fetchone()
         same_quiz_recent_count = to_int(same_quiz_row['cnt'], 0) if same_quiz_row else 0

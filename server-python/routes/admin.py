@@ -156,7 +156,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             SUM(CASE WHEN fallback_used = TRUE THEN 1 ELSE 0 END) as fallback_7d,
             MAX(created_at) as last_plan_generated
         FROM adaptive_plan_events
-        WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+        WHERE created_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '7 days'
     ''').fetchone()
     plan_stats = dict(plan_stats_row) if plan_stats_row else {}
 
@@ -449,7 +449,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             ) as avg_elapsed_s
         FROM quizzes q
         LEFT JOIN attempts a ON a.quiz_code = q.code
-          AND a.started_at >= CURRENT_TIMESTAMP - INTERVAL '2 days'
+          AND a.started_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '2 days'
         GROUP BY q.code
         ORDER BY q.created_at DESC
         LIMIT 60
@@ -489,7 +489,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM attempts a
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND a.completed_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+          AND a.completed_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '30 days'
         GROUP BY COALESCE(q.class_name, q.code), COALESCE(q.section_name, q.grade), q.grade
     ''').fetchall()
 
@@ -503,8 +503,8 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM attempts a
         LEFT JOIN quizzes q ON q.code = a.quiz_code
         WHERE a.completed_at IS NOT NULL
-          AND a.completed_at >= CURRENT_TIMESTAMP - INTERVAL '60 days'
-          AND a.completed_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
+          AND a.completed_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '60 days'
+          AND a.completed_at::timestamptz < CURRENT_TIMESTAMP - INTERVAL '30 days'
         GROUP BY COALESCE(q.class_name, q.code), COALESCE(q.section_name, q.grade), q.grade
     ''').fetchall()
 
@@ -604,7 +604,7 @@ def build_admin_overview(conn, uptime_seconds=None):
             SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) as server_errors,
             SUM(CASE WHEN event_type = 'generation_error' THEN 1 ELSE 0 END) as generation_errors
         FROM system_events
-        WHERE created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+        WHERE created_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
     ''').fetchone()
     system_24h = dict(system_24h_row) if system_24h_row else {}
 

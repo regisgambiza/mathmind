@@ -46,10 +46,10 @@ def get_dashboard():
             where.append('lower(topic) LIKE %s')
             params.append(f'%{topic.lower()}%')
         if date_from:
-            where.append('created_at >= %s::timestamp')
+            where.append('created_at::timestamptz >= %s::timestamp')
             params.append(date_from)
         if date_to:
-            where.append('created_at <= %s::timestamp')
+            where.append('created_at::timestamptz <= %s::timestamp')
             params.append(date_to)
 
         where_clause = 'WHERE ' + ' AND '.join(where) if where else ''
