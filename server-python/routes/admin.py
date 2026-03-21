@@ -450,7 +450,7 @@ def build_admin_overview(conn, uptime_seconds=None):
         FROM quizzes q
         LEFT JOIN attempts a ON a.quiz_code = q.code
           AND a.started_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '2 days'
-        GROUP BY q.code
+        GROUP BY q.code, q.topic, q.time_limit_mins, q.created_at
         ORDER BY q.created_at DESC
         LIMIT 60
     ''').fetchall()
