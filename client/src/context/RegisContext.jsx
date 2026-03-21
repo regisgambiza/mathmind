@@ -10,14 +10,16 @@ const OPENROUTER_MODEL = 'openrouter/free';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {
-        console.log('[RegisContext] ========== generateCompletion START (PROXIED) ==========');
+        console.log('[RegisContext] ========== generateCompletion START ==========');
         console.log('[RegisContext] Prompt length:', prompt?.length || 0);
 
         try {
             const apiBase = import.meta.env.VITE_API_URL || '';
-            console.log('[RegisContext] 📡 Sending request to backend proxy:', `${apiBase}/api/ai/complete`);
+            const url = `${apiBase}/api/ai/complete`;
+            console.log('[RegisContext] 📡 Sending request to:', url);
+            console.log('[RegisContext] Request body:', JSON.stringify({ prompt }).slice(0, 200));
 
-            const res = await fetch(`${apiBase}/api/ai/complete`, {
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -27,22 +29,42 @@ export function RegisProvider({ children }) {
 
             console.log('[RegisContext] 📥 Response received');
             console.log('[RegisContext] Status:', res.status, res.statusText);
+            console.log('[RegisContext] Headers:', Object.fromEntries(res.headers.entries()));
+            console.log('[RegisContext] Content-Type:', res.headers.get('content-type'));
+            console.log('[RegisContext] Content-Length:', res.headers.get('content-length'));
+
+            // Read raw text first to see what we actually got
+            const rawText = await res.text();
+            console.log('[RegisContext] Raw response text:', rawText);
+            console.log('[RegisContext] Raw text length:', rawText.length);
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                console.error('[RegisContext] Error data:', err);
-                throw new Error(err.error || `Server error: ${res.status}`);
+                console.error('[RegisContext] Non-OK status');
+                try {
+                    const err = JSON.parse(rawText);
+                    throw new Error(err.error || `Server error: ${res.status}`);
+                } catch (e) {
+                    throw new Error(`Server error: ${res.status} - ${rawText.slice(0, 100)}`);
+                }
             }
 
-            const data = await res.json();
-            // The backend returns the full OpenRouter response or just the content depending on how we want it
-            // Based on routes/ai.py, it returns the full OpenRouter JSON
-            const result = data.choices?.[0]?.message?.content || '';
+            // Parse the JSON
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch (e) {
+                console.error('[RegisContext] JSON parse failed. Raw text was:', rawText);
+                throw new Error(`Invalid JSON response: ${e.message}. Raw: ${rawText.slice(0, 200)}`);
+            }
 
-            console.log('[RegisContext] ✅ Response OK');
+            console.log('[RegisContext] Parsed JSON:', data);
+
+            const result = data.choices?.[0]?.message?.content || data.completion || '';
+            console.log('[RegisContext] Extracted completion:', result?.slice(0, 100));
+            console.log('[RegisContext] ✅ Success');
             return result;
         } catch (error) {
-            console.error('[RegisContext] Error:', error.message);
+            console.error('[RegisContext] ❌ Error:', error.message);
             throw error;
         }
     }, []);
