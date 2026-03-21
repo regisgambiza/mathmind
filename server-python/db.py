@@ -390,6 +390,38 @@ def get_db():
             
     return _thread_local.db
 
+def repair_schema(db):
+    """Ensures that boolean columns are correctly typed in PostgreSQL."""
+    logger.info("Checking for schema mismatches...")
+    migrations = [
+        ('quizzes', 'posted_to_classroom'),
+        ('students', 'leaderboard_opt_in'),
+        ('students', 'consent_opt_in'),
+        ('answers', 'excluded'),
+        ('adaptive_plan_events', 'has_history'),
+        ('adaptive_plan_events', 'fallback_used'),
+        ('quest_definitions', 'active'),
+        ('badge_definitions', 'active'),
+        ('badge_definitions', 'auto_award'),
+        ('parent_contacts', 'opt_in')
+    ]
+    
+    for table, column in migrations:
+        try:
+            # Check if column is integer
+            sql_check = f"""
+                SELECT data_type FROM information_schema.columns 
+                WHERE table_name = '{table}' AND column_name = '{column}'
+            """
+            row = db.fetchone(sql_check)
+            if row and row['data_type'] == 'integer':
+                logger.info(f"Converting {table}.{column} from integer to boolean...")
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE BOOLEAN USING {column}::boolean")
+                db.commit()
+        except Exception as e:
+            logger.warning(f"Failed to migrate {table}.{column}: {e}")
+            db.rollback()
+
 def init_db():
     db = get_db()
     schema = get_schema()
@@ -408,6 +440,9 @@ def init_db():
                 logger.warning(f"Schema error: {e}")
     
     db.commit()
+    
+    # Repair schema for legacy integer-boolean columns
+    repair_schema(db)
     
     # Seeding
     try:
