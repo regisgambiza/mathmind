@@ -333,15 +333,21 @@ class DBWrapper:
                 sql += ' ON CONFLICT DO NOTHING'
 
         # Auto-append RETURNING id for inserts if not present and likely needed
-        is_insert = sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper()
-        if is_insert:
+        # Tables without 'id' column: feature_flags, admin_settings
+        has_returning = 'RETURNING' in sql.upper()
+        is_insert = sql.strip().upper().startswith('INSERT')
+        
+        should_append_id = is_insert and not has_returning and 'FEATURE_FLAGS' not in sql.upper() and 'ADMIN_SETTINGS' not in sql.upper()
+        
+        if should_append_id:
             sql += ' RETURNING id'
+            has_returning = True
 
         cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         try:
             cursor.execute(sql, params)
             wrapper = CursorWrapper(cursor)
-            if is_insert:
+            if has_returning:
                 try:
                     res = cursor.fetchone()
                     if res:
