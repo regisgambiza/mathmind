@@ -21,7 +21,7 @@ export default function RegisSettingsModal({ onClose }) {
                 {/* Info Box */}
                 <div className="mb-5 p-4 rounded-xl bg-accent/10 border border-accent/20">
                     <p className="font-dm text-xs text-ink leading-relaxed">
-                        <span className="font-syne font-700">☁️ Cloud AI (OpenRouter Free)</span> — Free tier models via OpenRouter.
+                        <span className="font-syne font-700">☁️ Cloud AI (OpenRouter)</span> — Powered by OpenRouter.
                         No local setup required, internet connection needed.
                     </p>
                 </div>
@@ -45,7 +45,7 @@ export default function RegisSettingsModal({ onClose }) {
                                 <br />
                                 Update the model name in <code className="bg-ink/20 px-1 rounded">client/src/context/RegisContext.jsx</code>
                                 <br />
-                                Browse free models: <a href="https://openrouter.ai/models?max_price=0" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/models?max_price=0</a>
+                                Browse models: <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/models</a>
                             </p>
                         </div>
                     </div>
@@ -55,15 +55,13 @@ export default function RegisSettingsModal({ onClose }) {
                 <div className="mb-5 p-4 rounded-xl bg-paper border border-border">
                     <p className="font-syne font-700 text-sm text-ink mb-2">📦 First Time Setup</p>
                     <ol className="font-dm text-xs text-muted space-y-2 list-decimal list-inside">
-                        <li>Get a free API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/keys</a></li>
-                        <li>Create a <code className="bg-ink/20 px-1 rounded">.env</code> file in the <code className="bg-ink/20 px-1 rounded">client/</code> directory</li>
-                        <li>Add: <code className="bg-ink/20 px-1 rounded">VITE_OPENROUTER_API_KEY=your_key_here</code></li>
-                        <li>Refresh this page</li>
+                        <li>Get an API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/keys</a></li>
+                        <li>Add <code className="bg-ink/20 px-1 rounded">OPENROUTER_API_KEY=your_key_here</code> to backend environment variables</li>
+                        <li>Optional: set <code className="bg-ink/20 px-1 rounded">OPENROUTER_MODEL=openai/gpt-oss-120b</code> on the backend</li>
+                        <li>Redeploy backend service</li>
                     </ol>
                     <p className="font-dm text-xs text-muted mt-3">
-                        <span className="font-syne font-700">Model:</span> openrouter/free (auto-selects from available free models)
-                        <br/>
-                        <span className="font-syne font-700">Includes:</span> Llama 3, Gemma 2, Phi 3, Qwen, and more
+                        <span className="font-syne font-700">Model:</span> openai/gpt-oss-120b
                     </p>
                 </div>
 

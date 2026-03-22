@@ -2,11 +2,9 @@ import { createContext, useContext, useCallback } from 'react';
 
 const RegisContext = createContext(null);
 
-// OpenRouter free models - hardcoded
-// Using openrouter/free to auto-select from available free models
-// https://openrouter.ai/models?max_price=0
+// OpenRouter model (can be overridden at build time)
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const OPENROUTER_MODEL = 'openrouter/free';
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-oss-120b';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {

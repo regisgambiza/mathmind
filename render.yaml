@@ -27,6 +27,8 @@ services:
         value: https://mathmind-frontend-0j04.onrender.com
       - key: OPENROUTER_API_KEY
         sync: false # Set in Render Dashboard
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-oss-120b
 
   # Frontend: React/Vite (Static Site)
   - type: web
@@ -37,6 +39,8 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://mathmind-backend.onrender.com
+      - key: VITE_OPENROUTER_MODEL
+        value: openai/gpt-oss-120b
       - key: VITE_OPENROUTER_API_KEY
         sync: false # Set in Render Dashboard
 
