@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify, redirect, url_for, session
 import db
 import os
 import json
+import time
+import urllib.parse
 from datetime import datetime, timedelta
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -31,6 +33,120 @@ SCOPES = [
     'https://www.googleapis.com/auth/classroom.rosters.readonly'
 ]
 
+DEFAULT_GOOGLE_TOKEN_URI = 'https://oauth2.googleapis.com/token'
+FALLBACK_GOOGLE_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
+
+
+def _safe_int_env(key, fallback):
+    try:
+        return int(os.environ.get(key, fallback))
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _safe_float_env(key, fallback):
+    try:
+        return float(os.environ.get(key, fallback))
+    except (TypeError, ValueError):
+        return fallback
+
+
+GOOGLE_TOKEN_FETCH_RETRIES = max(_safe_int_env('GOOGLE_TOKEN_FETCH_RETRIES', 3), 1)
+GOOGLE_TOKEN_FETCH_TIMEOUT_SECONDS = max(_safe_int_env('GOOGLE_TOKEN_FETCH_TIMEOUT_SECONDS', 20), 5)
+GOOGLE_TOKEN_FETCH_BACKOFF_SECONDS = max(_safe_float_env('GOOGLE_TOKEN_FETCH_BACKOFF_SECONDS', 1.0), 0.1)
+
+TRANSIENT_NETWORK_ERROR_MARKERS = (
+    'lookup timed out',
+    'temporary failure in name resolution',
+    'name or service not known',
+    'failed to establish a new connection',
+    'max retries exceeded',
+    'connection reset',
+    'connection aborted',
+    'timed out',
+    '[errno -3]',
+)
+
+DNS_ERROR_MARKERS = (
+    'lookup timed out',
+    'name or service not known',
+    'temporary failure in name resolution',
+    '[errno -3]',
+)
+
+
+def _is_transient_network_error(exc):
+    message = str(exc).lower()
+    return any(marker in message for marker in TRANSIENT_NETWORK_ERROR_MARKERS)
+
+
+def _is_dns_resolution_error(exc):
+    message = str(exc).lower()
+    return any(marker in message for marker in DNS_ERROR_MARKERS)
+
+
+def _build_google_oauth_flow(redirect_uri, token_uri=DEFAULT_GOOGLE_TOKEN_URI):
+    flow = Flow.from_client_config({
+        'web': {
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+            'token_uri': token_uri,
+        }
+    }, scopes=SCOPES)
+    flow.redirect_uri = redirect_uri
+    return flow
+
+
+def _exchange_code_for_tokens(code, redirect_uri):
+    token_uris = [DEFAULT_GOOGLE_TOKEN_URI]
+    if FALLBACK_GOOGLE_TOKEN_URI not in token_uris:
+        token_uris.append(FALLBACK_GOOGLE_TOKEN_URI)
+
+    last_error = None
+
+    for token_uri in token_uris:
+        for attempt in range(1, GOOGLE_TOKEN_FETCH_RETRIES + 1):
+            flow = _build_google_oauth_flow(redirect_uri, token_uri=token_uri)
+            try:
+                flow.fetch_token(code=code, timeout=GOOGLE_TOKEN_FETCH_TIMEOUT_SECONDS)
+                if token_uri != DEFAULT_GOOGLE_TOKEN_URI:
+                    logger.warning("OAuth token exchange succeeded via fallback token endpoint.")
+                return flow.credentials
+            except Exception as exc:
+                last_error = exc
+                transient = _is_transient_network_error(exc)
+                logger.warning(
+                    "OAuth token exchange failed (endpoint=%s attempt=%s/%s transient=%s): %s",
+                    token_uri,
+                    attempt,
+                    GOOGLE_TOKEN_FETCH_RETRIES,
+                    transient,
+                    exc
+                )
+
+                if not transient:
+                    raise
+
+                if attempt < GOOGLE_TOKEN_FETCH_RETRIES:
+                    time.sleep(GOOGLE_TOKEN_FETCH_BACKOFF_SECONDS * attempt)
+
+        # Only try alternate token endpoint when failure looks DNS-related.
+        if not _is_dns_resolution_error(last_error):
+            break
+
+        logger.warning("OAuth DNS resolution issue detected; retrying against fallback token endpoint.")
+
+    raise last_error
+
+
+def _user_facing_oauth_error(exc):
+    if _is_transient_network_error(exc):
+        return 'Could not reach Google OAuth service (temporary network/DNS issue). Please try again in 30-60 seconds.'
+    if isinstance(exc, ValueError):
+        return f'Invalid Google credential: {exc}'
+    return 'Google login failed. Please try again.'
+
 
 @router.route('/google/login', methods=['POST', 'OPTIONS'])
 def google_login():
@@ -52,19 +168,10 @@ def google_login():
         if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
             return jsonify({'error': 'Google OAuth not configured on server'}), 500
 
-        # Exchange code for tokens
-        flow = Flow.from_client_config({
-            'web': {
-                'client_id': GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-            }
-        }, scopes=SCOPES)
-
-        flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/login/callback'
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
+        credentials = _exchange_code_for_tokens(
+            code=code,
+            redirect_uri=f'{BACKEND_URL}/api/auth/google/login/callback'
+        )
 
         # Get user info from credentials
         from googleapiclient.discovery import build
@@ -199,7 +306,9 @@ def google_login():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        error_message = _user_facing_oauth_error(e)
+        status_code = 503 if _is_transient_network_error(e) else 500
+        return jsonify({'error': error_message}), status_code
 
 
 @router.route('/google/login/callback', methods=['GET', 'OPTIONS'])
@@ -225,19 +334,10 @@ def google_login_callback():
         
         logger.info(f"Login callback - code: {'yes' if code else 'no'}, state: {state}, user_type: {user_type}")
 
-        # Exchange code for tokens
-        flow = Flow.from_client_config({
-            'web': {
-                'client_id': GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-            }
-        }, scopes=SCOPES)
-
-        flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/login/callback'
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
+        credentials = _exchange_code_for_tokens(
+            code=code,
+            redirect_uri=f'{BACKEND_URL}/api/auth/google/login/callback'
+        )
 
         logger.info(f"Tokens received, refresh_token: {'yes' if credentials.refresh_token else 'no'}")
 
@@ -308,7 +408,6 @@ def google_login_callback():
                 'email': teacher['email'] or email,
                 'google_id': google_id
             }
-            import urllib.parse
             user_json = urllib.parse.quote(json.dumps(user_data))
             return redirect(f'{FRONTEND_URL}/?login_success=true&user_type=teacher&user_data={user_json}')
 
@@ -366,13 +465,13 @@ def google_login_callback():
                 'email': student['email'] or email,
                 'google_id': google_id
             }
-            import urllib.parse
             user_json = urllib.parse.quote(json.dumps(user_data))
             return redirect(f'{FRONTEND_URL}/?login_success=true&user_type=student&user_data={user_json}')
 
     except Exception as e:
-        logger.error(f"Login callback error: {e}")
-        return redirect(f'{FRONTEND_URL}/?error=' + str(e))
+        logger.exception("Login callback error")
+        safe_error = urllib.parse.quote(_user_facing_oauth_error(e))
+        return redirect(f'{FRONTEND_URL}/?error={safe_error}')
 
 
 @router.route('/google/authorize', methods=['GET', 'OPTIONS'])
@@ -391,17 +490,7 @@ def google_authorize():
         return redirect(f'{FRONTEND_URL}/?error=missing_state')
 
     try:
-        # Create OAuth flow
-        flow = Flow.from_client_config({
-            'web': {
-                'client_id': GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-            }
-        }, scopes=SCOPES)
-
-        flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/login/callback'
+        flow = _build_google_oauth_flow(f'{BACKEND_URL}/api/auth/google/login/callback')
 
         # Encode user_type into the state parameter (Google will echo it back)
         # Format: frontend_state:user_type
@@ -424,7 +513,8 @@ def google_authorize():
 
     except Exception as e:
         logger.error(f"Error creating OAuth flow: {e}")
-        return redirect(f'{FRONTEND_URL}/?error=' + str(e))
+        safe_error = urllib.parse.quote(_user_facing_oauth_error(e))
+        return redirect(f'{FRONTEND_URL}/?error={safe_error}')
 
 
 @router.route('/google/classroom', methods=['GET', 'OPTIONS'])
@@ -441,17 +531,7 @@ def google_classroom_auth():
         return jsonify({'error': 'teacher_id is required'}), 400
     
     try:
-        # Create OAuth flow
-        flow = Flow.from_client_config({
-            'web': {
-                'client_id': GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-            }
-        }, scopes=SCOPES)
-        
-        flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/callback'
+        flow = _build_google_oauth_flow(f'{BACKEND_URL}/api/auth/google/callback')
         
         # Generate authorization URL
         authorization_url, state = flow.authorization_url(
@@ -467,7 +547,7 @@ def google_classroom_auth():
         return jsonify({'authorization_url': authorization_url})
     except Exception as e:
         logger.error(f"Error creating OAuth flow: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': _user_facing_oauth_error(e)}), 500
 
 
 @router.route('/google/callback', methods=['GET', 'OPTIONS'])
@@ -506,20 +586,10 @@ def google_callback():
             
         logger.info(f"Exchanging code for tokens, teacher_id: {teacher_id}")
 
-        # Exchange code for tokens
-        flow = Flow.from_client_config({
-            'web': {
-                'client_id': GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://oauth2.googleapis.com/token',
-            }
-        }, scopes=SCOPES)
-
-        flow.redirect_uri = f'{BACKEND_URL}/api/auth/google/callback'
-        flow.fetch_token(code=code)
-
-        credentials = flow.credentials
+        credentials = _exchange_code_for_tokens(
+            code=code,
+            redirect_uri=f'{BACKEND_URL}/api/auth/google/callback'
+        )
 
         logger.info(f"Tokens received, refresh_token: {'yes' if credentials.refresh_token else 'no'}")
 
@@ -547,8 +617,9 @@ def google_callback():
         return redirect(f'{FRONTEND_URL}/teacher/connect-classroom?success=true')
         
     except Exception as e:
-        logger.error(f"OAuth callback error: {e}")
-        return redirect(f'{FRONTEND_URL}/teacher/connect-classroom?error=' + str(e))
+        logger.exception("OAuth callback error")
+        safe_error = urllib.parse.quote(_user_facing_oauth_error(e))
+        return redirect(f'{FRONTEND_URL}/teacher/connect-classroom?error={safe_error}')
 
 
 @router.route('/google/status', methods=['GET', 'OPTIONS'])
