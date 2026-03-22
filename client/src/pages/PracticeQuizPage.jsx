@@ -24,11 +24,24 @@ const DIFFICULTY_LABELS = {
   advanced: 'Advanced',
 };
 
+const HINT_LIMITS = {
+  topic_quiz: 2,
+  class_activity: 3,
+  practice: 5,
+};
+
 function normalizeDifficulty(value) {
   const raw = String(value || '').trim().toLowerCase();
   if (raw === 'foundation' || raw === 'easy') return 'foundation';
   if (raw === 'advanced' || raw === 'hard') return 'advanced';
   return 'core';
+}
+
+function normalizeActivityType(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'topic_quiz' || raw === 'topic quiz') return 'topic_quiz';
+  if (raw === 'practice') return 'practice';
+  return 'class_activity';
 }
 
 export default function PracticeQuizPage() {
@@ -64,6 +77,7 @@ export default function PracticeQuizPage() {
   const [hintText, setHintText] = useState('');
   const [loadingHint, setLoadingHint] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
+  const [hintsByQuestion, setHintsByQuestion] = useState({});
 
   const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
   const [adaptiveMessage, setAdaptiveMessage] = useState(null);
@@ -315,16 +329,25 @@ Example format:
   }, [qIdx]);
 
   const handleGetHint = async () => {
-    if (!questions[qIdx] || loadingHint) return;
+    if (!questions[qIdx] || loadingHint || answered) return;
+
+    const existingHint = hintsByQuestion[qIdx];
+    if (existingHint) {
+      setHintText(existingHint);
+      setShowHint(true);
+      return;
+    }
+    if (hintCapReached) return;
 
     setLoadingHint(true);
     setShowHint(true);
 
     try {
       const q = questions[qIdx];
+      let resolvedHint = '';
       // Use AI-generated hint if available, otherwise generate
       if (q.hint) {
-        setHintText(q.hint);
+        resolvedHint = q.hint;
       } else {
         const hint = await generateHint({
           questionText: q.question,
@@ -333,12 +356,17 @@ Example format:
           difficulty: q.difficulty,
           generateCompletion,
         });
-        setHintText(hint);
+        resolvedHint = hint || 'Try breaking down the question. What information do you have?';
       }
+      setHintText(resolvedHint);
+      setHintsByQuestion(prev => ({ ...prev, [qIdx]: resolvedHint }));
       setHintsUsed(prev => prev + 1);
     } catch (err) {
       console.error('Hint generation failed:', err);
-      setHintText('Try breaking down the question. What information do you have?');
+      const fallbackHint = 'Try breaking down the question. What information do you have?';
+      setHintText(fallbackHint);
+      setHintsByQuestion(prev => ({ ...prev, [qIdx]: fallbackHint }));
+      setHintsUsed(prev => prev + 1);
     } finally {
       setLoadingHint(false);
     }
@@ -529,6 +557,10 @@ Example format:
   const q = questions[qIdx];
   const isLast = qIdx === questions.length - 1;
   const qDifficulty = normalizeDifficulty(q?.difficulty);
+  const activityType = normalizeActivityType('practice');
+  const hintLimit = HINT_LIMITS[activityType] || HINT_LIMITS.practice;
+  const hintUsedOnCurrentQuestion = Boolean(hintsByQuestion[qIdx]);
+  const hintCapReached = hintsUsed >= hintLimit;
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
@@ -683,14 +715,25 @@ Example format:
 
       {/* Footer */}
       <div className="sticky bottom-0 bg-paper border-t border-border px-4 sm:px-5 py-4 max-w-[480px] mx-auto w-full">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-dm text-xs text-muted tabular-nums">
+            Hints: {hintsUsed}/{hintLimit} used
+          </span>
+        </div>
         <div className="flex items-center gap-3 mb-3">
           <button
             onClick={handleGetHint}
-            disabled={answered || loadingHint}
+            disabled={answered || loadingHint || (!hintUsedOnCurrentQuestion && hintCapReached)}
             className="flex-1 py-3 rounded-xl border-2 border-accent/30 bg-accent/5 text-accent font-syne font-700 text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-accent/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             <span>💡</span>
-            {loadingHint ? 'Generating...' : hintsUsed === 0 ? 'Get Hint' : `Hint (${hintsUsed})`}
+            {loadingHint
+              ? 'Generating...'
+              : hintUsedOnCurrentQuestion
+                ? 'Show Hint'
+                : hintCapReached
+                  ? 'Hint Limit Reached'
+                  : 'Get Hint'}
           </button>
         </div>
         <button
