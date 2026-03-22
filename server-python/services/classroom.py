@@ -6,7 +6,7 @@ Handles all Classroom API interactions: courses, topics, assignments, roster, gr
 import os
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -25,59 +25,61 @@ CLASSROOM_SCOPES = [
 ]
 
 
+def _parse_expiry_utc(expires_at):
+    """Parse DB expiry into naive UTC datetime for google-auth credentials."""
+    if not expires_at:
+        return None
+
+    if isinstance(expires_at, datetime):
+        dt = expires_at
+    else:
+        raw = str(expires_at).strip()
+        if not raw:
+            return None
+        if raw.endswith('Z'):
+            raw = raw.replace('Z', '+00:00')
+        try:
+            dt = datetime.fromisoformat(raw)
+        except ValueError:
+            return None
+
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 def get_teacher_credentials(teacher_id):
     """Get OAuth credentials for a teacher"""
     try:
         teacher_id = int(teacher_id)
     except (ValueError, TypeError):
         return None
-        
+
     conn = db.get_db()
     teacher = conn.execute(
         'SELECT * FROM teachers WHERE id = %s',
         (teacher_id,)
     ).fetchone()
-    
+
     if not teacher or not teacher['google_refresh_token']:
         return None
-    
-    # Check if access token is still valid (sqlite3.Row uses [] not .get())
-    try:
-        expires_at = teacher['google_token_expires_at']
-    except (KeyError, IndexError):
-        expires_at = None
 
-    if expires_at:
-        try:
-            if isinstance(expires_at, str):
-                expires_dt = datetime.fromisoformat(expires_at)
-            elif isinstance(expires_at, datetime):
-                expires_dt = expires_at
-            else:
-                expires_dt = None
-                
-            if expires_dt and expires_dt > datetime.utcnow():
-                # Token still valid
-                return Credentials(
-                    token=teacher['google_access_token'],
-                    refresh_token=teacher['google_refresh_token'],
-                    token_uri='https://oauth2.googleapis.com/token',
-                    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-                    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-                    scopes=CLASSROOM_SCOPES
-                )
-        except Exception as e:
-            logger.error(f"Error parsing token expiry: {e}")
-
-    # Token expired or missing — return credentials to allow refresh
-    return Credentials(
+    expires_dt = _parse_expiry_utc(teacher.get('google_token_expires_at'))
+    credentials = Credentials(
         token=teacher['google_access_token'],
         refresh_token=teacher['google_refresh_token'],
         token_uri='https://oauth2.googleapis.com/token',
         client_id=os.environ.get('GOOGLE_CLIENT_ID'),
         client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-        scopes=CLASSROOM_SCOPES
+        scopes=CLASSROOM_SCOPES,
+        expiry=expires_dt
     )
+
+    # If expiry is missing but refresh token exists, force one refresh cycle.
+    if not expires_dt and credentials.refresh_token:
+        credentials.expiry = datetime.utcnow() - timedelta(seconds=5)
+
+    return credentials
 
 
 def refresh_teacher_tokens(teacher_id, credentials):
@@ -105,14 +107,12 @@ def refresh_teacher_tokens(teacher_id, credentials):
 
 def get_classroom_service(teacher_id):
     """Get authenticated Classroom API service for a teacher"""
-    import google.auth.transport.requests as google_requests
-    
     credentials = get_teacher_credentials(teacher_id)
     if not credentials:
         return None
     
-    # Check if token needs refresh
-    if credentials.expired and credentials.refresh_token:
+    # Refresh when token is expired or invalid.
+    if (credentials.expired or not credentials.valid) and credentials.refresh_token:
         try:
             credentials.refresh(google_requests.Request())
             # Store updated tokens
@@ -384,7 +384,7 @@ def validate_student_in_course(course_id, student_email):
         
         # Fetch the student's Google ID from MathMind database
         student_record = conn.execute(
-            'SELECT google_id FROM students WHERE email = %s', (student_email,)
+            'SELECT google_id FROM students WHERE LOWER(email) = LOWER(%s)', (student_email,)
         ).fetchone()
         target_google_id = student_record['google_id'] if student_record else None
 
@@ -500,18 +500,20 @@ def process_grade_sync_queue():
         ).fetchall()
         
         synced = False
+        last_error = None
         for teacher in teachers:
             # Get student userId from roster
             roster_result = get_course_roster(teacher['id'], item['course_id'])
             if 'error' in roster_result:
                 logger.warning(f"Roster fetch failed for teacher {teacher['id']}: {roster_result['error']}")
+                last_error = roster_result['error']
                 continue
             
             student_user_id = None
             
             # Fetch the student's Google ID from MathMind database
             student_record = conn.execute(
-                'SELECT google_id FROM students WHERE email = %s', (item['student_email'],)
+                'SELECT google_id FROM students WHERE LOWER(email) = LOWER(%s)', (item['student_email'],)
             ).fetchone()
             target_google_id = student_record['google_id'] if student_record else None
 
@@ -527,6 +529,7 @@ def process_grade_sync_queue():
             
             if not student_user_id:
                 logger.warning(f"Student {item['student_email']} not found in roster for course {item['course_id']} (teacher {teacher['id']})")
+                last_error = f"Student {item['student_email']} not found in roster for course {item['course_id']}"
                 continue
             
             # Sync grade
@@ -550,17 +553,28 @@ def process_grade_sync_queue():
                 synced = True
                 logger.info(f"Grade synced for {item['student_email']} coursework {item['coursework_id']} with teacher {teacher['id']}")
                 break
+            else:
+                last_error = result.get('error') or 'Unknown Classroom sync error'
         
         if not synced:
-            # Failed - increment retry count
+            # Failed - increment retry count and mark failed after max retries.
+            next_retry = int(item.get('retry_count') or 0) + 1
+            next_status = 'failed' if next_retry >= 3 else 'pending'
+            error_message = last_error or 'Failed to sync - teacher disconnected or student not found'
             conn.execute('''
                 UPDATE grade_sync_queue 
-                SET retry_count = retry_count + 1,
+                SET retry_count = %s,
+                    status = %s,
                     error_message = %s
                 WHERE id = %s
-            ''', ('Failed to sync - teacher disconnected or student not found', item['id']))
+            ''', (next_retry, next_status, error_message, item['id']))
             conn.commit()
-            results['retried'] += 1
-            logger.warning(f"Grade sync retry queued for {item['student_email']} coursework {item['coursework_id']}")
+            if next_status == 'failed':
+                results['failed'] += 1
+                logger.error(f"Grade sync failed permanently for {item['student_email']} coursework {item['coursework_id']}: {error_message}")
+            else:
+                results['retried'] += 1
+                logger.warning(f"Grade sync retry queued for {item['student_email']} coursework {item['coursework_id']}: {error_message}")
     
     return results
+

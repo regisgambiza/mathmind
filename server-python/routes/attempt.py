@@ -296,17 +296,27 @@ def complete_attempt(id):
                 ))
                 conn.commit()
 
+        # Resolve student email for Classroom sync (frontend payload or DB fallback).
+        resolved_student_email = str(student_email or '').strip().lower()
+        if not resolved_student_email and existing.get('student_id'):
+            student_row = conn.execute(
+                'SELECT email FROM students WHERE id = %s',
+                (existing['student_id'],)
+            ).fetchone()
+            if student_row and student_row.get('email'):
+                resolved_student_email = str(student_row['email']).strip().lower()
+
         # Sync grade to Classroom if quiz is posted
-        logger.info(f"DEBUG: quiz={quiz}, student_email={student_email}")
+        logger.info(f"DEBUG: quiz={quiz}, student_email={resolved_student_email}")
         if quiz and quiz['posted_to_classroom'] and quiz['course_id'] and quiz['coursework_id']:
             logger.info(f"DEBUG: Quiz has classroom settings, checking student_email")
-            if student_email:
-                logger.info(f"Queueing grade sync for quiz {quiz['code']} coursework {quiz['coursework_id']} email {student_email} pct={percentage}")
+            if resolved_student_email:
+                logger.info(f"Queueing grade sync for quiz {quiz['code']} coursework {quiz['coursework_id']} email {resolved_student_email} pct={percentage}")
                 try:
                     classroom.queue_grade_sync(
                         quiz['course_id'],
                         quiz['coursework_id'],
-                        student_email,
+                        resolved_student_email,
                         percentage
                     )
                     results = classroom.process_grade_sync_queue()
