@@ -166,8 +166,8 @@ def start_practice():
 
         # Create attempt for this practice session
         cursor = conn.execute('''
-            INSERT INTO attempts (quiz_code, student_id, student_name, status)
-            VALUES (%s, %s, %s, 'practice')
+            INSERT INTO attempts (quiz_code, student_id, student_name, status, completed_at)
+            VALUES (%s, %s, %s, 'practice', NULL)
         ''', (practice_code, student_id, student['name']))
         conn.commit()
 

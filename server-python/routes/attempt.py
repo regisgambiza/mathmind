@@ -149,8 +149,8 @@ def start_attempt():
 
         # Create attempt
         cursor = conn.execute('''
-            INSERT INTO attempts (quiz_code, student_id, student_name, last_activity_at)
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+            INSERT INTO attempts (quiz_code, student_id, student_name, last_activity_at, completed_at, status)
+            VALUES (%s, %s, %s, CURRENT_TIMESTAMP, NULL, 'in_progress')
         ''', (quiz_code.upper(), resolved_student_id, resolved_student_name))
         conn.commit()
         attempt_id = cursor.lastrowid
@@ -195,7 +195,9 @@ def complete_attempt(id):
         if not existing:
             return jsonify({'error': 'Attempt not found'}), 404
 
-        if existing['completed_at']:
+        completion_status = str(existing.get('status') or '').lower()
+        is_final_status = completion_status in ('completed', 'force_submitted', 'time_expired')
+        if existing['completed_at'] and is_final_status:
             # Parse existing rewards
             parsed_rewards = None
             if existing['rewards_json']:

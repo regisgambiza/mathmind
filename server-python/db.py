@@ -439,6 +439,8 @@ def repair_schema(db):
             db.rollback()
     
     # Timestamp column migrations (TEXT -> TIMESTAMPTZ)
+    # IMPORTANT: do not force NOW() on columns that should default to NULL
+    # (for example attempts.completed_at, quizzes.release_at/close_at).
     timestamp_migrations = [
         ('quizzes', 'created_at'),
         ('quizzes', 'close_at'),
@@ -464,6 +466,31 @@ def repair_schema(db):
         ('assignment_schedules', 'created_at'),
     ]
 
+    timestamp_default_map = {
+        ('quizzes', 'created_at'): 'NOW()',
+        ('quizzes', 'close_at'): None,
+        ('quizzes', 'open_at'): None,
+        ('quizzes', 'release_at'): None,
+        ('answers', 'created_at'): 'NOW()',
+        ('answers', 'updated_at'): 'NOW()',
+        ('students', 'created_at'): 'NOW()',
+        ('students', 'updated_at'): 'NOW()',
+        ('attempts', 'created_at'): 'NOW()',
+        ('attempts', 'started_at'): 'NOW()',
+        ('attempts', 'completed_at'): None,
+        ('adaptive_plan_events', 'created_at'): 'NOW()',
+        ('admin_settings', 'updated_at'): 'NOW()',
+        ('feature_flags', 'updated_at'): 'NOW()',
+        ('audit_logs', 'created_at'): 'NOW()',
+        ('system_events', 'created_at'): 'NOW()',
+        ('generated_question_sets', 'created_at'): 'NOW()',
+        ('manual_overrides', 'created_at'): 'NOW()',
+        ('parent_alerts', 'created_at'): 'NOW()',
+        ('data_requests', 'created_at'): 'NOW()',
+        ('assignment_schedules', 'release_at'): None,
+        ('assignment_schedules', 'created_at'): 'NOW()',
+    }
+
     for table, column in timestamp_migrations:
         try:
             sql_check = f"""
@@ -473,16 +500,55 @@ def repair_schema(db):
             row = db.fetchone(sql_check)
             if row and row['data_type'] == 'text':
                 logger.info(f"Repairing {table}.{column}: text -> timestamptz")
-                db.execute(f"""
-                    ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;
-                    ALTER TABLE {table} ALTER COLUMN {column} TYPE TIMESTAMPTZ USING {column}::timestamptz;
-                    ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT NOW();
-                """)
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;")
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE TIMESTAMPTZ USING {column}::timestamptz;")
+
+                default_expr = timestamp_default_map.get((table, column))
+                if default_expr:
+                    db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} SET DEFAULT {default_expr};")
                 db.commit()
                 logger.info(f"Successfully repaired {table}.{column}")
         except Exception as e:
             logger.warning(f"Failed to migrate {table}.{column}: {e}")
             db.rollback()
+
+    # Safety cleanup for nullable timestamp columns that must not auto-default.
+    nullable_no_default = [
+        ('attempts', 'completed_at'),
+        ('quizzes', 'close_at'),
+        ('quizzes', 'open_at'),
+        ('quizzes', 'release_at'),
+        ('assignment_schedules', 'release_at'),
+    ]
+    for table, column in nullable_no_default:
+        try:
+            sql_check = f"""
+                SELECT data_type, column_default FROM information_schema.columns
+                WHERE table_name = '{table}' AND column_name = '{column}'
+            """
+            row = db.fetchone(sql_check)
+            if row and row.get('column_default'):
+                logger.info(f"Dropping unsafe default on {table}.{column}: {row.get('column_default')}")
+                db.execute(f"ALTER TABLE {table} ALTER COLUMN {column} DROP DEFAULT;")
+                db.commit()
+        except Exception as e:
+            logger.warning(f"Failed to drop default on {table}.{column}: {e}")
+            db.rollback()
+
+    # Data cleanup: fix accidental auto-completed in-progress attempts.
+    try:
+        db.execute('''
+            UPDATE attempts
+            SET completed_at = NULL
+            WHERE completed_at IS NOT NULL
+              AND COALESCE(status, 'in_progress') IN ('in_progress', 'practice')
+              AND score IS NULL
+              AND total IS NULL
+        ''')
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to clean in-progress completed_at values: {e}")
+        db.rollback()
 
 def init_db():
     db = get_db()
