@@ -9,7 +9,11 @@ logger = logging.getLogger('ai_proxy')
 router = Blueprint('ai', __name__)
 
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507')
+# OpenRouter model - can be a comma-separated list for fallback, or a single model
+OPENROUTER_MODEL_RAW = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507')
+# Parse the model list and use the first one as default
+OPENROUTER_MODELS = [m.strip() for m in OPENROUTER_MODEL_RAW.split(',') if m.strip()]
+OPENROUTER_MODEL = OPENROUTER_MODELS[0] if OPENROUTER_MODELS else 'google/gemini-2.0-flash-001'
 
 @router.route('/complete', methods=['POST'])
 def ai_complete():
