@@ -887,7 +887,9 @@ Randomize values so each learner gets unique questions.`;
     <div className="min-h-screen bg-paper flex flex-col items-center justify-center px-10 animate-fadeUp">
       {!error ? (
         <div className="w-full max-w-md text-center">
-          <div className="text-5xl mb-8 animate-bounce">Brain</div>
+          <div className="text-5xl mb-8 animate-bounce" role="img" aria-label="Brain">
+            {'\u{1F9E0}'}
+          </div>
 
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-8 group transition-all hover:bg-accent/15">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
@@ -910,7 +912,9 @@ Randomize values so each learner gets unique questions.`;
             </div>
           </div>
 
-          <p className="font-syne font-800 text-[11px] text-ink/80 uppercase tracking-[0.4em]">🧠 Generating Quiz</p>
+          <p className="font-syne font-800 text-[11px] text-ink/80 uppercase tracking-[0.4em]">
+            {'\u{1F9E0}'} Generating Quiz
+          </p>
           <p className="font-dm text-sm text-muted mt-1">{Math.round(progress)}% Complete</p>
         </div>
       ) : (
@@ -928,3 +932,4 @@ Randomize values so each learner gets unique questions.`;
     </div>
   );
 }
+

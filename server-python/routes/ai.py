@@ -9,7 +9,7 @@ logger = logging.getLogger('ai_proxy')
 router = Blueprint('ai', __name__)
 
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b')
+OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507')
 
 @router.route('/complete', methods=['POST'])
 def ai_complete():

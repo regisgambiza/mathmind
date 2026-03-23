@@ -28,7 +28,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false # Set in Render Dashboard
       - key: OPENROUTER_MODEL
-        value: openai/gpt-oss-120b
+        value: openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507
 
   # Frontend: React/Vite (Static Site)
   - type: web
@@ -40,7 +40,7 @@ services:
       - key: VITE_API_URL
         value: https://mathmind-backend.onrender.com
       - key: VITE_OPENROUTER_MODEL
-        value: openai/gpt-oss-120b
+        value: openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507
       - key: VITE_OPENROUTER_API_KEY
         sync: false # Set in Render Dashboard
 

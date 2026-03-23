@@ -4,7 +4,7 @@ const RegisContext = createContext(null);
 
 // OpenRouter model (can be overridden at build time)
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-oss-120b';
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {
