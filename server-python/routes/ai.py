@@ -15,9 +15,46 @@ OPENROUTER_MODEL_RAW = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b,g
 OPENROUTER_MODELS = [m.strip() for m in OPENROUTER_MODEL_RAW.split(',') if m.strip()]
 OPENROUTER_MODEL = OPENROUTER_MODELS[0] if OPENROUTER_MODELS else 'google/gemini-2.0-flash-001'
 
+def _try_model(api_key, headers_base, payload, model, timeout=30):
+    """Try a single model and return (success, response_data, error_msg)."""
+    headers = headers_base.copy()
+    payload_with_model = payload.copy()
+    payload_with_model['model'] = model
+    
+    logger.info(f"[ai/complete] Trying model: {model} (timeout: {timeout}s)")
+    
+    try:
+        response = requests.post(
+            f"{OPENROUTER_BASE_URL}/chat/completions",
+            headers=headers,
+            json=payload_with_model,
+            stream=False,
+            timeout=timeout
+        )
+        
+        logger.info(f"[ai/complete] {model} response status: {response.status_code}")
+        
+        if not response.ok:
+            error_text = response.text[:200] if response.text else 'No response body'
+            logger.warning(f"[ai/complete] {model} failed: {response.status_code} - {error_text}")
+            return False, None, f"Model {model} returned {response.status_code}"
+        
+        response_data = response.json()
+        completion_text = response_data['choices'][0]['message']['content']
+        logger.info(f"[ai/complete] {model} succeeded")
+        return True, completion_text, None
+        
+    except requests.exceptions.Timeout:
+        logger.warning(f"[ai/complete] {model} timed out after {timeout}s")
+        return False, None, f"Model {model} timed out"
+    except Exception as e:
+        logger.warning(f"[ai/complete] {model} error: {e}")
+        return False, None, f"Model {model} error: {str(e)}"
+
+
 @router.route('/complete', methods=['POST'])
 def ai_complete():
-    """Proxy AI completion requests to OpenRouter securely."""
+    """Proxy AI completion requests to OpenRouter with automatic model fallback."""
     data = request.get_json()
     prompt = data.get('prompt') if data else None
 
@@ -34,75 +71,35 @@ def ai_complete():
         logger.error("[ai/complete] OPENROUTER_API_KEY is missing in environment variables")
         return jsonify({'error': 'AI service not configured on server'}), 503
 
-    try:
-        logger.info(f"[ai/complete] Forwarding AI request to OpenRouter")
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}',
+        'HTTP-Referer': os.environ.get('BACKEND_URL', 'http://localhost:5000'),
+        'X-Title': 'MathMind AI Tutor',
+    }
 
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}',
-            'HTTP-Referer': os.environ.get('BACKEND_URL', 'http://localhost:5000'),
-            'X-Title': 'MathMind AI Tutor',
-        }
+    payload = {
+        'messages': [{'role': 'user', 'content': prompt}],
+        'stream': False,
+    }
 
-        payload = {
-            'model': OPENROUTER_MODEL,
-            'messages': [{'role': 'user', 'content': prompt}],
-            'stream': False,  # CRITICAL: disable streaming
-        }
+    # Try each model in order with increasing timeouts
+    last_error = None
+    for i, model in enumerate(OPENROUTER_MODELS):
+        timeout = 30 + (i * 15)  # First: 30s, Second: 45s, Third: 60s
+        
+        success, result, error = _try_model(api_key, headers, payload, model, timeout)
+        
+        if success:
+            response_json = json.dumps({'completion': result})
+            logger.info(f"[ai/complete] ========== REQUEST END (used {model}) ==========")
+            resp = make_response(response_json, 200)
+            resp.headers['Content-Type'] = 'application/json'
+            resp.headers['Content-Length'] = str(len(response_json))
+            return resp
+        
+        last_error = error
 
-        logger.info(f"[ai/complete] Sending request to OpenRouter with payload: model={OPENROUTER_MODEL}, stream=False")
-
-        response = requests.post(
-            f"{OPENROUTER_BASE_URL}/chat/completions",
-            headers=headers,
-            json=payload,
-            stream=False,  # CRITICAL: do not stream the response
-            timeout=60  # Increased timeout for slow first tokens
-        )
-
-        logger.info(f"[ai/complete] OpenRouter response status: {response.status_code}")
-        logger.info(f"[ai/complete] OpenRouter response headers: {dict(response.headers)}")
-        logger.info(f"[ai/complete] OpenRouter response raw text (first 500 chars): {response.text[:500]}")
-
-        if not response.ok:
-            logger.error(f"OpenRouter error: {response.status_code} - {response.text}")
-            return jsonify({
-                'error': f'AI service returned an error ({response.status_code})',
-                'detail': response.json() if response.headers.get('Content-Type') == 'application/json' else response.text
-            }), response.status_code
-
-        # Parse the response and extract the completion text
-        try:
-            response_data = response.json()
-        except json.JSONDecodeError as e:
-            logger.error(f"[ai/complete] Failed to parse JSON response: {e}")
-            logger.error(f"[ai/complete] Raw response text: {response.text}")
-            return jsonify({'error': 'Invalid JSON from AI service', 'detail': str(e)}), 500
-
-        logger.info(f"[ai/complete] Parsed JSON response: {str(response_data)[:500]}")
-
-        # Extract the actual completion text from the nested response structure
-        try:
-            completion_text = response_data['choices'][0]['message']['content']
-        except (KeyError, IndexError) as e:
-            logger.error(f"[ai/complete] Failed to parse response structure: {e}, data: {response_data}")
-            return jsonify({'error': 'Invalid response format from AI service', 'detail': str(e)}), 500
-
-        result = {'completion': completion_text}
-        response_json = json.dumps(result)
-        logger.info(f"[ai/complete] Returning response: {response_json[:200]}")
-        logger.info(f"[ai/complete] Response JSON length: {len(response_json)}")
-        logger.info(f"[ai/complete] ========== REQUEST END ==========")
-
-        # Use make_response to ensure proper response handling with SocketIO
-        resp = make_response(response_json, 200)
-        resp.headers['Content-Type'] = 'application/json'
-        resp.headers['Content-Length'] = str(len(response_json))
-        return resp
-
-    except requests.exceptions.Timeout:
-        logger.error("AI request timed out")
-        return jsonify({'error': 'AI request timed out'}), 504
-    except Exception as e:
-        logger.error(f"Unexpected error in AI proxy: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+    # All models failed
+    logger.error(f"[ai/complete] All models failed. Last error: {last_error}")
+    return jsonify({'error': 'All AI models failed', 'detail': last_error}), 504
