@@ -3,10 +3,10 @@ import { createContext, useContext, useCallback } from 'react';
 const RegisContext = createContext(null);
 
 // OpenRouter model (can be overridden at build time)
-const OPENROUTER_MODEL_RAW = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507';
+const OPENROUTER_MODEL_RAW = import.meta.env.VITE_OPENROUTER_MODEL || 'openai/gpt-4o-mini,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507';
 // Parse the model list and use the first one as default
 const OPENROUTER_MODELS = OPENROUTER_MODEL_RAW.split(',').map(m => m.trim()).filter(m => m);
-const OPENROUTER_MODEL = OPENROUTER_MODELS[0] || 'google/gemini-2.0-flash-001';
+const OPENROUTER_MODEL = OPENROUTER_MODELS[0] || 'openai/gpt-4o-mini';
 
 export function RegisProvider({ children }) {
     const generateCompletion = useCallback(async (prompt) => {

@@ -57,11 +57,11 @@ export default function RegisSettingsModal({ onClose }) {
                     <ol className="font-dm text-xs text-muted space-y-2 list-decimal list-inside">
                         <li>Get an API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-accent underline">openrouter.ai/keys</a></li>
                         <li>Add <code className="bg-ink/20 px-1 rounded">OPENROUTER_API_KEY=your_key_here</code> to backend environment variables</li>
-                        <li>Optional: set <code className="bg-ink/20 px-1 rounded">OPENROUTER_MODEL=openai/gpt-oss-120b</code> on the backend</li>
+                        <li>Optional: set <code className="bg-ink/20 px-1 rounded">OPENROUTER_MODEL=openai/gpt-4o-mini,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507</code> on the backend</li>
                         <li>Redeploy backend service</li>
                     </ol>
                     <p className="font-dm text-xs text-muted mt-3">
-                        <span className="font-syne font-700">Model:</span> openai/gpt-oss-120b
+                        <span className="font-syne font-700">Model chain:</span> openai/gpt-4o-mini → google/gemini-2.0-flash-001 → qwen/qwen3-235b-a22b-thinking-2507
                     </p>
                 </div>
 

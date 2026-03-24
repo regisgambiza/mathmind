@@ -10,10 +10,10 @@ router = Blueprint('ai', __name__)
 
 OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 # OpenRouter model - can be a comma-separated list for fallback, or a single model
-OPENROUTER_MODEL_RAW = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-120b,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507')
+OPENROUTER_MODEL_RAW = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-4o-mini,google/gemini-2.0-flash-001,qwen/qwen3-235b-a22b-thinking-2507')
 # Parse the model list and use the first one as default
 OPENROUTER_MODELS = [m.strip() for m in OPENROUTER_MODEL_RAW.split(',') if m.strip()]
-OPENROUTER_MODEL = OPENROUTER_MODELS[0] if OPENROUTER_MODELS else 'google/gemini-2.0-flash-001'
+OPENROUTER_MODEL = OPENROUTER_MODELS[0] if OPENROUTER_MODELS else 'openai/gpt-4o-mini'
 
 def _try_model(api_key, headers_base, payload, model, timeout=30):
     """Try a single model and return (success, response_data, error_msg)."""
